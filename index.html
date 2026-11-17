@@ -1,342 +1,384 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0b0c0e">
-  <meta name="description" content="AE FF ARENA - Free Fire Tournament Platform">
-  <title>AE FF ARENA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#070b16">
+  <title>AE FF ARENA - Free Fire Tournament</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="topbar">
-  <a class="brand" href="#">
-    <span class="brand-icon">AE</span>
-    <span>AE FF <b>ARENA</b></span>
-  </a>
-  <button class="menu-toggle" id="menuToggle">☰</button>
-  <nav id="mainNav">
-    <a href="#tournaments">Tournament</a>
-    <a href="#leaderboard">Leaderboard</a>
-    <a href="#wallet">Wallet</a>
-    <a href="#contact">Contact</a>
-    <button class="btn btn-outline" id="playerBtn">Player Login</button>
-    <button class="btn btn-primary" id="adminBtn">Admin</button>
-  </nav>
+  <div class="container">
+    <a href="#" class="logo">AE FF <span>ARENA</span></a>
+
+    <button class="menu-toggle" id="menuToggle">☰</button>
+
+    <nav id="mainNav">
+      <a href="#tournaments">Tournament</a>
+      <a href="#leaderboard">Leaderboard</a>
+      <a href="#wallet">Wallet</a>
+      <a href="#contact">Contact</a>
+      <button class="btn" id="playerBtn">Player Login</button>
+      <button class="btn btn-secondary" id="adminBtn">Admin</button>
+    </nav>
+  </div>
 </header>
 
 <main>
   <section class="hero">
-    <div class="hero-content">
-      <span class="eyebrow">BANGLADESH FREE FIRE COMMUNITY</span>
-      <h1>DOMINATE THE<br><span>BATTLEFIELD</span></h1>
-      <p>Join tournaments, compete with the best players and win exciting prizes.</p>
-      <div class="hero-buttons">
-        <a class="btn btn-primary" href="#tournaments">Join Tournament</a>
-        <button class="btn btn-outline" id="heroRegisterBtn">Create Account</button>
-      </div>
-      <div class="stats">
-        <div><strong id="tournamentCount">0</strong><span>Tournaments</span></div>
-        <div><strong>24/7</strong><span>Support</span></div>
-        <div><strong>FF</strong><span>Community</span></div>
-      </div>
-    </div>
-    <div class="hero-visual">
-      <div class="hero-emblem">AE<br><small>ARENA</small></div>
-      <div class="hero-tag">PLAY • COMPETE • WIN</div>
+    <div class="container">
+      <h1>WELCOME TO <span>AE FF ARENA</span></h1>
+      <p>Join Free Fire tournaments, compete with players and win exciting prizes.</p>
+      <button class="btn" id="heroRegisterBtn">Create Account</button>
+      <a href="#tournaments" class="btn btn-secondary">Join Tournament</a>
     </div>
   </section>
 
-  <section class="section" id="tournaments">
-    <div class="section-heading">
-      <div><span class="eyebrow">COMPETE NOW</span><h2>LIVE TOURNAMENTS</h2></div>
-      <span class="section-mark">01 / ARENA</span>
-    </div>
-    <div class="cards" id="tournamentList">
-      <div class="empty-state">Loading tournaments...</div>
+  <section id="tournaments">
+    <h2 class="section-title">Available Tournaments</h2>
+    <div id="tournamentList" class="tournament-grid">
+      <p class="text-muted">Loading tournaments...</p>
     </div>
   </section>
 
-  <section class="section" id="leaderboard">
-    <div class="section-heading">
-      <div><span class="eyebrow">TOP PLAYERS</span><h2>LEADERBOARD</h2></div>
-      <span class="section-mark">02 / RANK</span>
-    </div>
-    <div class="panel">
-      <div id="leaderboardList" class="empty-state">Leaderboard will appear here.</div>
+  <section id="leaderboard">
+    <h2 class="section-title">Leaderboard</h2>
+    <div id="leaderboardList" class="panel">
+      <p class="text-muted">Leaderboard will appear here.</p>
     </div>
   </section>
 
-  <section class="section" id="wallet">
-    <div class="section-heading">
-      <div><span class="eyebrow">PLAYER ACCOUNT</span><h2>MY WALLET</h2></div>
-      <span class="section-mark">03 / WALLET</span>
-    </div>
-    <div id="walletLoggedOut" class="panel wallet-login">
-      <h3>Login to access your wallet</h3>
-      <p>Sign in to view your balance, payment requests and transaction history.</p>
-      <button class="btn btn-primary" id="walletLoginBtn">Player Login</button>
+  <section id="wallet">
+    <h2 class="section-title">My Wallet</h2>
+
+    <div id="walletLoggedOut" class="panel">
+      <p>Please login to access your wallet.</p>
+      <button class="btn" id="walletLoginBtn">Player Login</button>
     </div>
 
-    <div id="walletDashboard" class="hidden">
-      <div class="wallet-balance panel">
-        <span>AVAILABLE BALANCE</span>
-        <strong>৳ <b id="walletBalance">0.00</b></strong>
-        <small id="walletPlayerName">Player</small>
+    <div id="walletDashboard" style="display:none">
+      <div class="wallet-dashboard">
+        <div class="wallet-card">
+          <p class="text-muted">Player</p>
+          <h3 id="walletPlayerName">Player</h3>
+        </div>
+        <div class="wallet-card">
+          <p class="text-muted">Available Balance</p>
+          <div class="wallet-balance">৳<span id="walletBalance">0</span></div>
+        </div>
       </div>
 
-      <div class="wallet-actions">
-        <form id="addMoneyForm" class="panel">
-          <h3>ADD MONEY REQUEST</h3>
+      <div class="form-grid">
+        <form id="addMoneyForm">
+          <h3>Add Money</h3>
           <label>Amount (৳)</label>
-          <input id="addAmount" type="number" min="1" placeholder="Enter amount" required>
+          <input type="number" id="addAmount" min="1" required>
+
           <label>Payment Method</label>
           <select id="addMethod" required>
-            <option value="">Select method</option>
+            <option value="">Select Method</option>
             <option value="bKash">bKash</option>
             <option value="Nagad">Nagad</option>
             <option value="Rocket">Rocket</option>
           </select>
-          <label>Your Payment Number</label>
-          <input id="addSender" placeholder="01XXXXXXXXX" required>
+
+          <label>Sender Number</label>
+          <input type="tel" id="addSender" required>
+
           <label>Transaction ID</label>
-          <input id="addTrx" placeholder="Enter transaction ID" required>
-          <button class="btn btn-primary full" type="submit">Submit Add Money Request</button>
+          <input type="text" id="addTrxId" required>
+
+          <button type="submit">Submit Add Money Request</button>
         </form>
 
-        <form id="withdrawForm" class="panel">
-          <h3>WITHDRAW MONEY</h3>
+        <form id="withdrawForm">
+          <h3>Withdraw Money</h3>
           <label>Amount (৳)</label>
-          <input id="withdrawAmount" type="number" min="1" placeholder="Enter amount" required>
+          <input type="number" id="withdrawAmount" min="1" required>
+
           <label>Payment Method</label>
           <select id="withdrawMethod" required>
-            <option value="">Select method</option>
+            <option value="">Select Method</option>
             <option value="bKash">bKash</option>
             <option value="Nagad">Nagad</option>
             <option value="Rocket">Rocket</option>
           </select>
+
           <label>Account Holder Name</label>
-          <input id="withdrawHolder" placeholder="Your name" required>
+          <input type="text" id="withdrawHolder" required>
+
           <label>Account Number</label>
-          <input id="withdrawNumber" placeholder="01XXXXXXXXX" required>
-          <button class="btn btn-primary full" type="submit">Submit Withdraw Request</button>
+          <input type="tel" id="withdrawNumber" required>
+
+          <button type="submit">Submit Withdraw Request</button>
         </form>
       </div>
 
       <div class="panel">
-        <h3>MY REQUESTS</h3>
-        <div id="myRequests" class="empty-state">No requests yet.</div>
+        <h3>My Requests</h3>
+        <div id="myRequests">No requests yet.</div>
       </div>
+
       <div class="panel">
-        <h3>TRANSACTION HISTORY</h3>
-        <div id="transactionHistory" class="empty-state">No transactions yet.</div>
+        <h3>My Transactions</h3>
+        <div id="transactionHistory">No transactions yet.</div>
       </div>
     </div>
   </section>
 
-  <section class="section" id="contact">
-    <div class="section-heading">
-      <div><span class="eyebrow">NEED HELP?</span><h2>CONTACT US</h2></div>
-      <span class="section-mark">04 / SUPPORT</span>
-    </div>
+  <section id="contact">
+    <h2 class="section-title">Contact Us</h2>
     <div class="contact-grid panel">
-      <div><span>PHONE</span><strong id="contactPhone">Not set</strong></div>
-      <div><span>WHATSAPP</span><strong id="contactWhatsApp">Not set</strong></div>
-      <div><span>FACEBOOK</span><strong id="contactFacebook">Not set</strong></div>
-      <div><span>YOUTUBE</span><strong id="contactYouTube">Not set</strong></div>
+      <div>
+        <h3>Phone</h3>
+        <p id="contactPhone">Not available</p>
+      </div>
+      <div>
+        <h3>WhatsApp</h3>
+        <p id="contactWhatsApp">Not available</p>
+      </div>
+      <div>
+        <h3>Facebook</h3>
+        <p id="contactFacebook">Not available</p>
+      </div>
+      <div>
+        <h3>YouTube</h3>
+        <p id="contactYouTube">Not available</p>
+      </div>
     </div>
   </section>
 </main>
 
 <footer>
-  <div class="brand"><span class="brand-icon">AE</span> AE FF <b>ARENA</b></div>
-  <p>© 2026 AE FF ARENA. All rights reserved.</p>
+  <p>© 2026 AE FF ARENA. All Rights Reserved.</p>
 </footer>
 
-<!-- PLAYER LOGIN / REGISTRATION -->
+<!-- PLAYER LOGIN / SIGNUP MODAL -->
 <div class="modal" id="playerModal">
-  <div class="dialog">
-    <button class="close" data-close="playerModal">×</button>
-    <span class="eyebrow">PLAYER ACCOUNT</span>
-    <h2 id="playerModalTitle">CREATE ACCOUNT</h2>
+  <div class="modal-content">
+    <button class="close-modal" type="button" data-close="playerModal">×</button>
+    <h2 id="playerModalTitle">Player Login</h2>
+
     <form id="playerAuthForm">
-      <div id="signupFields">
+      <div id="signupFields" style="display:none">
         <label>Player Name</label>
-        <input id="playerName" placeholder="Your in-game name">
+        <input type="text" id="playerName">
+
         <label>Free Fire UID</label>
-        <input id="playerFFUID" placeholder="Your Free Fire UID">
+        <input type="text" id="playerFFUID">
+
         <label>Phone Number</label>
-        <input id="playerPhone" placeholder="01XXXXXXXXX">
+        <input type="tel" id="playerPhone">
       </div>
-      <label>Email Address</label>
-      <input id="playerEmail" type="email" placeholder="Email address" required>
+
+      <label>Email</label>
+      <input type="email" id="playerEmail" required>
+
       <label>Password</label>
-      <input id="playerPassword" type="password" minlength="6" placeholder="Minimum 6 characters" required>
-      <button class="btn btn-primary full" id="playerSubmitBtn" type="submit">Create Account</button>
+      <input type="password" id="playerPassword" minlength="6" required>
+
+      <button type="submit" id="playerSubmitBtn">Login</button>
+
+      <p id="playerAuthMessage"></p>
+
+      <p id="authSwitchText">Don't have an account?</p>
+      <button type="button" class="btn btn-secondary" id="switchAuthBtn">Create Account</button>
     </form>
-    <p class="switch-auth" id="authSwitchText">Already have an account? <button id="switchAuthBtn" type="button">Login</button></p>
-    <p id="playerAuthMessage" class="form-message"></p>
   </div>
 </div>
 
-<!-- TOURNAMENT JOIN -->
+<!-- JOIN TOURNAMENT MODAL -->
 <div class="modal" id="joinModal">
-  <div class="dialog">
-    <button class="close" data-close="joinModal">×</button>
-    <span class="eyebrow">ENTER THE BATTLE</span>
-    <h2>JOIN TOURNAMENT</h2>
+  <div class="modal-content">
+    <button class="close-modal" type="button" data-close="joinModal">×</button>
+    <h2>Join Tournament</h2>
+
     <form id="joinForm">
       <input type="hidden" id="joinTournamentId">
-      <label>Player / Squad Name</label>
-      <input id="joinPlayerName" required placeholder="Player or squad name">
+
+      <label>Player Name</label>
+      <input type="text" id="joinPlayerName" required>
+
       <label>Free Fire UID</label>
-      <input id="joinFFUID" required placeholder="Free Fire UID">
+      <input type="text" id="joinFFUID" required>
+
       <label>Contact Number</label>
-      <input id="joinContact" required placeholder="01XXXXXXXXX">
-      <button class="btn btn-primary full" type="submit">Confirm Registration</button>
+      <input type="tel" id="joinContact" required>
+
+      <button type="submit">Confirm Join</button>
+      <p id="joinMessage"></p>
     </form>
-    <p id="joinMessage" class="form-message"></p>
   </div>
 </div>
 
-<!-- ADMIN LOGIN / DASHBOARD -->
+<!-- ADMIN MODAL -->
 <div class="modal" id="adminModal">
-  <div class="dialog admin-dialog">
-    <button class="close" data-close="adminModal">×</button>
+  <div class="modal-content" style="width:min(900px,100%)">
+    <button class="close-modal" type="button" data-close="adminModal">×</button>
+
+    <h2>Admin Panel</h2>
+
     <div id="adminLogin">
-      <span class="eyebrow">CONTROL CENTER</span>
-      <h2>ADMIN LOGIN</h2>
       <form id="adminLoginForm">
-        <label>Admin Email</label>
-        <input id="adminEmail" type="email" required>
+        <h3>Admin Login</h3>
+        <label>Email</label>
+        <input type="email" id="adminEmail" required>
+
         <label>Password</label>
-        <input id="adminPassword" type="password" required>
-        <button class="btn btn-primary full" type="submit">Login to Dashboard</button>
+        <input type="password" id="adminPassword" required>
+
+        <button type="submit">Admin Login</button>
+        <p id="adminLoginMessage"></p>
       </form>
-      <p id="adminLoginMessage" class="form-message"></p>
     </div>
 
-    <div id="adminDashboard" class="hidden">
-      <span class="eyebrow">AE FF ARENA</span>
-      <h2>ADMIN DASHBOARD</h2>
-      <button class="btn btn-outline full" id="adminLogoutBtn">Logout</button>
+    <div id="adminDashboard" style="display:none">
+      <button class="btn btn-danger" id="adminLogoutBtn">Admin Logout</button>
 
       <div class="admin-section">
-        <h3>CREATE / UPDATE TOURNAMENT</h3>
+        <h3>Create / Edit Tournament</h3>
         <form id="tournamentForm">
           <input type="hidden" id="editTournamentId">
+
           <label>Tournament Name</label>
-          <input id="tournamentName" required>
+          <input type="text" id="tournamentName" required>
+
           <label>Mode</label>
           <select id="tournamentMode">
-            <option>Solo</option><option>Duo</option><option>Squad</option>
+            <option value="Solo">Solo</option>
+            <option value="Duo">Duo</option>
+            <option value="Squad">Squad</option>
           </select>
-          <label>Date & Time</label>
-          <input id="tournamentDate" type="datetime-local" required>
-          <label>Prize Pool (৳)</label>
-          <input id="tournamentPrize" type="number" min="0" required>
-          <label>Total Slots</label>
-          <input id="tournamentSlots" type="number" min="1" required>
+
+          <label>Date and Time</label>
+          <input type="datetime-local" id="tournamentDate" required>
+
+          <label>Prize</label>
+          <input type="number" id="tournamentPrize" min="0" required>
+
+          <label>Slots</label>
+          <input type="number" id="tournamentSlots" min="1" required>
+
           <label>Status</label>
           <select id="tournamentStatus">
-            <option value="Open">Open</option>
-            <option value="Ongoing">Ongoing</option>
+            <option value="Upcoming">Upcoming</option>
+            <option value="Live">Live</option>
             <option value="Completed">Completed</option>
           </select>
-          <button class="btn btn-primary full" type="submit">Save Tournament</button>
+
+          <button type="submit">Save Tournament</button>
         </form>
         <div id="adminTournamentList"></div>
       </div>
 
       <div class="admin-section">
-        <h3>PRIVATE ROOM DETAILS</h3>
+        <h3>Room Information</h3>
         <form id="roomForm">
           <label>Tournament</label>
           <select id="roomTournament" required></select>
+
           <label>Room ID</label>
-          <input id="roomId" required>
+          <input type="text" id="roomId" required>
+
           <label>Room Password</label>
-          <input id="roomPassword" required>
-          <button class="btn btn-primary full" type="submit">Save Room Details</button>
+          <input type="text" id="roomPassword" required>
+
+          <button type="submit">Save Room Information</button>
         </form>
       </div>
 
       <div class="admin-section">
-        <h3>PLAYER REGISTRATIONS</h3>
-        <div id="adminRegistrations" class="empty-state">No registrations.</div>
+        <h3>Tournament Registrations</h3>
+        <div id="adminRegistrations"></div>
       </div>
 
       <div class="admin-section">
-        <h3>PLAYER WALLET CONTROL</h3>
+        <h3>Manual Wallet Balance</h3>
         <form id="balanceForm">
-          <label>Player Firebase UID</label>
-          <input id="balanceUID" required>
-          <label>Amount (৳)</label>
-          <input id="balanceAmount" type="number" min="1" required>
+          <label>Player UID</label>
+          <input type="text" id="balanceUID" required>
+
+          <label>Amount</label>
+          <input type="number" id="balanceAmount" required>
+
           <label>Action</label>
-          <select id="balanceAction"><option value="add">Add Balance</option><option value="deduct">Deduct Balance</option></select>
-          <button class="btn btn-primary full" type="submit">Update Balance</button>
+          <select id="balanceAction">
+            <option value="add">Add Balance</option>
+            <option value="remove">Remove Balance</option>
+          </select>
+
+          <button type="submit">Update Balance</button>
         </form>
       </div>
 
       <div class="admin-section">
-        <h3>ADD MONEY REQUESTS</h3>
-        <div id="adminAddRequests" class="empty-state">No requests.</div>
+        <h3>Add Money Requests</h3>
+        <div id="adminAddRequests"></div>
       </div>
 
       <div class="admin-section">
-        <h3>WITHDRAW REQUESTS</h3>
-        <div id="adminWithdrawRequests" class="empty-state">No requests.</div>
+        <h3>Withdraw Requests</h3>
+        <div id="adminWithdrawRequests"></div>
       </div>
 
       <div class="admin-section">
-        <h3>WITHDRAW FEE SETTINGS</h3>
+        <h3>Withdraw Fee</h3>
         <form id="feeForm">
-          <label>Withdraw Fee (%)</label>
-          <input id="withdrawFee" type="number" min="0" max="100" value="0">
-          <button class="btn btn-primary full" type="submit">Save Fee</button>
+          <label>Withdraw Fee (৳)</label>
+          <input type="number" id="withdrawFee" min="0" required>
+          <button type="submit">Save Fee</button>
         </form>
       </div>
 
       <div class="admin-section">
-        <h3>WEBSITE SETTINGS</h3>
+        <h3>Website Settings</h3>
         <form id="settingsForm">
           <label>Website Title</label>
-          <input id="settingTitle" value="AE FF ARENA">
+          <input type="text" id="settingTitle">
+
           <label>Hero Title</label>
-          <input id="settingHeroTitle" value="DOMINATE THE BATTLEFIELD">
+          <input type="text" id="settingHeroTitle">
+
           <label>Description</label>
           <textarea id="settingDescription"></textarea>
-          <label>SEO Keywords</label>
-          <input id="settingKeywords">
+
+          <label>Keywords</label>
+          <input type="text" id="settingKeywords">
+
           <label>Phone</label>
-          <input id="settingPhone">
+          <input type="text" id="settingPhone">
+
           <label>WhatsApp</label>
-          <input id="settingWhatsApp">
-          <label>Facebook URL</label>
-          <input id="settingFacebook">
-          <label>YouTube URL</label>
-          <input id="settingYouTube">
-          <button class="btn btn-primary full" type="submit">Save Website Settings</button>
+          <input type="text" id="settingWhatsApp">
+
+          <label>Facebook</label>
+          <input type="text" id="settingFacebook">
+
+          <label>YouTube</label>
+          <input type="text" id="settingYouTube">
+
+          <button type="submit">Save Website Settings</button>
         </form>
       </div>
 
       <div class="admin-section">
-        <h3>HERO BANNER IMAGE</h3>
+        <h3>Banner Settings</h3>
         <label>Banner Image URL</label>
-        <input id="bannerUrl" placeholder="Paste image URL">
-        <button class="btn btn-primary full" id="saveBanner" type="button">Save Banner URL</button>
-        <button class="btn btn-outline full" id="deleteBanner" type="button">Remove Banner</button>
+        <input type="url" id="bannerUrl">
+
+        <button type="button" id="saveBanner">Save Banner</button>
+        <button type="button" class="btn btn-danger" id="deleteBanner">Delete Banner</button>
+
         <div id="bannerPreview"></div>
       </div>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div id="toast" style="display:none"></div>
+
 <script type="module" src="app.js"></script>
 </body>
-</html>
+          </html>
