@@ -13,13 +13,13 @@
 <body>
 
 <header>
-  <a class="logo" href="#">
-    <span>AE</span> <b id="siteTitleText">FF ARENA</b>
-  </a>
+  <a class="logo" href="#"><span>AE</span> <b id="siteTitleText">FF ARENA</b></a>
   <nav>
     <a href="#matches">TOURNAMENT</a>
     <a href="#leaderboard">LEADERBOARD</a>
+    <a href="#wallet">WALLET</a>
     <a href="#contact">CONTACT</a>
+    <button id="playerBtn" class="ghost">PLAYER LOGIN</button>
     <button id="adminBtn" class="ghost">ADMIN LOGIN</button>
   </nav>
 </header>
@@ -76,6 +76,92 @@
     </div>
   </section>
 
+  <!-- PLAYER WALLET -->
+  <section id="wallet" class="section wallet-section">
+    <p class="eyebrow">PLAYER ACCOUNT / WALLET</p>
+    <h2>My Wallet</h2>
+
+    <div id="playerLoggedOut" class="wallet-panel">
+      <h3>Player Account</h3>
+      <p>নিজের Wallet দেখতে Player Login করো।</p>
+      <button class="cta" id="walletLoginBtn">PLAYER LOGIN / SIGNUP</button>
+    </div>
+
+    <div id="playerDashboard" hidden>
+      <div class="wallet-panel">
+        <div class="wallet-top">
+          <div>
+            <span class="muted">AVAILABLE BALANCE</span>
+            <div class="balance" id="walletBalance">৳ 0.00</div>
+          </div>
+          <span class="wallet-icon">৳</span>
+        </div>
+        <p id="playerIdentity" class="hint"></p>
+        <button id="playerLogout" class="ghost">PLAYER LOGOUT</button>
+      </div>
+
+      <div class="wallet-actions">
+        <div class="wallet-panel">
+          <h3>Add Money Request</h3>
+          <form id="addMoneyForm">
+            <label>Amount (৳)
+              <input id="addAmount" type="number" min="1" max="100000" required>
+            </label>
+            <label>Payment Method
+              <select id="addMethod" required>
+                <option value="bKash">bKash</option>
+                <option value="Nagad">Nagad</option>
+                <option value="Rocket">Rocket</option>
+              </select>
+            </label>
+            <label>যে নম্বর থেকে টাকা পাঠিয়েছ
+              <input id="addAccount" maxlength="20" required placeholder="01XXXXXXXXX">
+            </label>
+            <label>Transaction ID
+              <input id="addTrx" maxlength="50" required>
+            </label>
+            <button class="cta">SUBMIT ADD MONEY REQUEST</button>
+          </form>
+          <p class="hint">Admin যাচাই করার পর Request-এর সিদ্ধান্ত জানাবে।</p>
+        </div>
+
+        <div class="wallet-panel">
+          <h3>Withdraw Money</h3>
+          <form id="withdrawForm">
+            <label>Withdraw Amount (৳)
+              <input id="withdrawAmount" type="number" min="1" max="100000" required>
+            </label>
+            <label>Payment Method
+              <select id="withdrawMethod" required>
+                <option value="bKash">bKash</option>
+                <option value="Nagad">Nagad</option>
+                <option value="Rocket">Rocket</option>
+              </select>
+            </label>
+            <label>Account Holder Name
+              <input id="withdrawName" maxlength="50" required>
+            </label>
+            <label>Account Number
+              <input id="withdrawAccount" maxlength="20" required placeholder="01XXXXXXXXX">
+            </label>
+            <button class="cta">SUBMIT WITHDRAW REQUEST</button>
+          </form>
+          <p class="hint">Admin Request যাচাই করবে।</p>
+        </div>
+      </div>
+
+      <div class="wallet-panel">
+        <h3>My Transaction History</h3>
+        <div id="transactionHistory" class="registrations">লোড হচ্ছে...</div>
+      </div>
+
+      <div class="wallet-panel">
+        <h3>My Requests</h3>
+        <div id="myRequests" class="registrations">লোড হচ্ছে...</div>
+      </div>
+    </div>
+  </section>
+
   <section id="contact" class="section contact-section">
     <p class="eyebrow">GET IN TOUCH</p>
     <h2>Contact AE FF ARENA</h2>
@@ -106,6 +192,29 @@
   <span>Unofficial community tournament project. Not affiliated with Garena.</span>
 </footer>
 
+<!-- PLAYER LOGIN / SIGNUP -->
+<div class="modal" id="playerModal">
+  <div class="dialog">
+    <button class="x" data-close>×</button>
+    <p class="eyebrow">AE FF ARENA / PLAYER</p>
+    <h2 id="playerFormTitle">Player Login</h2>
+    <form id="playerForm">
+      <label id="playerNameLabel" hidden>Player Name
+        <input id="playerName" maxlength="30">
+      </label>
+      <label>Email
+        <input id="playerEmail" type="email" required autocomplete="email">
+      </label>
+      <label>Password
+        <input id="playerPassword" type="password" required minlength="6" autocomplete="current-password">
+      </label>
+      <button class="cta" id="playerSubmit">PLAYER LOGIN</button>
+    </form>
+    <button type="button" class="ghost" id="togglePlayerMode">CREATE NEW ACCOUNT</button>
+    <p class="hint">নিজের Password গোপন রাখবে।</p>
+  </div>
+</div>
+
 <!-- JOIN TOURNAMENT -->
 <div class="modal" id="joinModal">
   <div class="dialog">
@@ -114,9 +223,15 @@
     <h2>Join Tournament</h2>
     <form id="joinForm">
       <input id="joinTournament" type="hidden">
-      <label>Player / Squad Name<input id="pname" required maxlength="30"></label>
-      <label>Free Fire UID<input id="puid" required maxlength="20"></label>
-      <label>Contact Number<input id="pcontact" required maxlength="20"></label>
+      <label>Player / Squad Name
+        <input id="pname" required maxlength="30">
+      </label>
+      <label>Free Fire UID
+        <input id="puid" required maxlength="20">
+      </label>
+      <label>Contact Number
+        <input id="pcontact" required maxlength="20">
+      </label>
       <button class="cta">SUBMIT REGISTRATION</button>
     </form>
   </div>
@@ -131,8 +246,12 @@
 
     <div id="loginBox">
       <form id="loginForm">
-        <label>Admin Email<input id="email" type="email" required autocomplete="username"></label>
-        <label>Password<input id="password" type="password" required autocomplete="current-password"></label>
+        <label>Admin Email
+          <input id="email" type="email" required autocomplete="username">
+        </label>
+        <label>Password
+          <input id="password" type="password" required autocomplete="current-password">
+        </label>
         <button class="cta">LOGIN TO DASHBOARD</button>
       </form>
       <p class="hint">Admin account দিয়ে Login করো।</p>
@@ -155,7 +274,7 @@
           <button type="button" id="saveBanner" class="cta">UPLOAD / CHANGE BANNER</button>
           <button type="button" id="deleteBanner" class="danger">DELETE BANNER</button>
         </div>
-        <p class="hint">ছবি Gallery থেকে নির্বাচন করো। ছবি স্বয়ংক্রিয়ভাবে ছোট হবে। সর্বোচ্চ ৭০০ KB-এর মধ্যে রাখতে হবে।</p>
+        <p class="hint">ছবি Gallery থেকে নির্বাচন করো।</p>
       </div>
 
       <div class="admin-section">
@@ -164,12 +283,12 @@
         <form id="settingsForm" class="formgrid">
           <label>Website Name<input id="settingTitle" placeholder="AE FF ARENA"></label>
           <label>Hero Heading<input id="settingHeroTitle" placeholder="ENTER THE BATTLE ZONE"></label>
-          <label class="full">Website Description<input id="settingDescription" placeholder="Tournament website description"></label>
-          <label class="full">SEO Keywords<input id="settingKeywords" placeholder="Free Fire, Tournament, Bangladesh"></label>
-          <label>Contact Number<input id="settingPhone" placeholder="01XXXXXXXXX"></label>
-          <label>WhatsApp Number<input id="settingWhatsapp" placeholder="8801XXXXXXXXX"></label>
-          <label>Facebook Link<input id="settingFacebook" type="url" placeholder="https://facebook.com/..."></label>
-          <label>YouTube Link<input id="settingYoutube" type="url" placeholder="https://youtube.com/..."></label>
+          <label class="full">Website Description<input id="settingDescription"></label>
+          <label class="full">SEO Keywords<input id="settingKeywords"></label>
+          <label>Contact Number<input id="settingPhone"></label>
+          <label>WhatsApp Number<input id="settingWhatsapp"></label>
+          <label>Facebook Link<input id="settingFacebook" type="url"></label>
+          <label>YouTube Link<input id="settingYoutube" type="url"></label>
           <button class="cta full">SAVE WEBSITE SETTINGS</button>
         </form>
       </div>
@@ -181,13 +300,17 @@
           <input id="tid" type="hidden">
           <label>Tournament Name<input id="tname" required></label>
           <label>Mode
-            <select id="mode"><option>SOLO</option><option>DUO</option><option>SQUAD</option></select>
+            <select id="mode">
+              <option>SOLO</option><option>DUO</option><option>SQUAD</option>
+            </select>
           </label>
-          <label>Match Date & Time<input id="date" placeholder="Friday 8:00 PM"></label>
-          <label>Prize Pool<input id="prize" placeholder="৳ 500"></label>
+          <label>Match Date & Time<input id="date"></label>
+          <label>Prize Pool<input id="prize"></label>
           <label>Slots<input id="slots" type="number" min="1" value="48"></label>
           <label>Status
-            <select id="status"><option>OPEN</option><option>FULL</option><option>COMPLETED</option></select>
+            <select id="status">
+              <option>OPEN</option><option>FULL</option><option>COMPLETED</option>
+            </select>
           </label>
           <button class="cta">SAVE TOURNAMENT</button>
           <button type="button" id="resetTour" class="ghost">CLEAR FORM</button>
@@ -213,10 +336,65 @@
         <div id="registrationList" class="registrations">Loading...</div>
         <button id="refreshRegs" class="ghost">REFRESH REGISTRATIONS</button>
       </div>
+
+      <!-- ADMIN WALLET CONTROL -->
+      <div class="admin-section">
+        <p class="eyebrow">06 / WALLET CONTROL</p>
+        <h3>Wallet Management</h3>
+
+        <div class="wallet-panel">
+          <h3>Add / Deduct Player Balance</h3>
+          <form id="adminWalletForm">
+            <label>Player UID
+              <input id="walletPlayerUid" required placeholder="Firebase Player UID">
+            </label>
+            <label>Amount (৳)
+              <input id="adminWalletAmount" type="number" min="1" max="100000" required>
+            </label>
+            <label>Action
+              <select id="walletAction">
+                <option value="ADD">ADD BALANCE</option>
+                <option value="DEDUCT">DEDUCT BALANCE</option>
+              </select>
+            </label>
+            <label>Reason
+              <input id="walletReason" maxlength="100" required>
+            </label>
+            <button class="cta">UPDATE PLAYER WALLET</button>
+          </form>
+        </div>
+
+        <div class="wallet-panel">
+          <h3>Add Money Requests</h3>
+          <div id="adminAddRequests" class="registrations">Loading...</div>
+        </div>
+
+        <div class="wallet-panel">
+          <h3>Withdraw Requests</h3>
+          <div id="adminWithdrawRequests" class="registrations">Loading...</div>
+        </div>
+
+        <div class="wallet-panel">
+          <h3>Wallet Settings</h3>
+          <form id="walletSettingsForm">
+            <label>Withdraw Fee Type
+              <select id="withdrawFeeType">
+                <option value="FIXED">Fixed Amount</option>
+                <option value="PERCENT">Percentage</option>
+              </select>
+            </label>
+            <label>Withdraw Fee
+              <input id="withdrawFee" type="number" min="0" max="100" value="0" required>
+            </label>
+            <button class="cta">SAVE WALLET SETTINGS</button>
+          </form>
+          <p class="hint">Fee 0 রাখলে কোনো Withdraw Fee থাকবে না।</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script type="module" src="app.js"></script>
 </body>
-</html>
+  </html>
