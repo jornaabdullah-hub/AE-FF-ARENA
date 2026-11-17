@@ -1,18 +1,222 @@
 <!doctype html>
-<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0c0e"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><title>AE FF ARENA</title></head>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090b10">
+  <meta name="description" id="siteDescriptionMeta" content="AE FF ARENA Bangladesh Community Esports">
+  <meta name="keywords" id="siteKeywords" content="AE FF ARENA, Free Fire Tournament, Bangladesh Esports">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <title>AE FF ARENA</title>
+</head>
 <body>
-<header><a class="logo" href="#">AE <b>FF ARENA</b></a><nav><a href="#matches">Tournament</a><a href="#leaderboard">Leaderboard</a><button id="adminBtn" class="ghost">Admin Login</button></nav></header>
-<main><section class="hero"><div><p class="eyebrow">BANGLADESH COMMUNITY ESPORTS</p><h1>ENTER THE<br><span>BATTLE ZONE</span></h1><p>তোমার স্কোয়াড তৈরি করো। টুর্নামেন্টে যোগ দাও। জিতে নাও গৌরব।</p><a class="cta" href="#matches">EXPLORE MATCHES ↗</a></div><div class="hero-art"><div class="target">✦</div><strong>AE<br>FF</strong><small>ARENA / 001</small></div></section>
-<section class="stats"><div><b id="countT">0</b><span>TOURNAMENTS</span></div><div><b id="countR">0</b><span>REGISTRATIONS</span></div><div><b>24/7</b><span>COMMUNITY</span></div></section>
-<section id="matches" class="section"><div class="heading"><div><p class="eyebrow">FIND YOUR MATCH</p><h2>চলমান Tournament</h2></div><span id="connection">Connecting…</span></div><div id="tournaments" class="cards"><p>লোড হচ্ছে...</p></div></section>
-<section id="leaderboard" class="section"><p class="eyebrow">TOP PLAYERS</p><h2>Leaderboard</h2><div class="tablebox"><table><thead><tr><th>Rank</th><th>Player / Squad</th><th>Matches</th><th>Points</th></tr></thead><tbody id="leaders"><tr><td colspan="4">Admin leaderboard feature will be added next.</td></tr></tbody></table></div></section></main>
-<footer><b>AE FF ARENA</b><span>Unofficial community tournament project. Not affiliated with Garena.</span></footer>
-<div class="modal" id="joinModal"><div class="dialog"><button class="x" data-close>×</button><p class="eyebrow">PLAYER ENTRY</p><h2>Join Tournament</h2><form id="joinForm"><input id="joinTournament" type="hidden"><label>Player / Squad Name<input id="pname" required maxlength="30"></label><label>Free Fire UID<input id="puid" required maxlength="20"></label><label>Contact Number<input id="pcontact" required maxlength="20"></label><button class="cta">SUBMIT REGISTRATION</button></form></div></div>
-<div class="modal" id="adminModal"><div class="dialog wide"><button class="x" data-close>×</button><p class="eyebrow">AE FF ARENA / CONTROL ROOM</p><h2>Admin Dashboard</h2>
-<div id="loginBox"><form id="loginForm"><label>Admin Email<input id="email" type="email" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="cta">LOGIN</button></form><p class="hint">Firebase Authentication-এ আগে Admin account তৈরি করতে হবে।</p></div>
-<div id="dashboard" hidden><div class="dashhead"><span id="adminIdentity"></span><button id="logout" class="ghost">Logout</button></div>
-<h3>Create / Update Tournament</h3><form id="tourForm" class="formgrid"><input id="tid" type="hidden"><label>Tournament Name<input id="tname" required></label><label>Mode<select id="mode"><option>SOLO</option><option>DUO</option><option>SQUAD</option></select></label><label>Match Date & Time<input id="date" placeholder="Friday 8:00 PM"></label><label>Prize Pool<input id="prize" placeholder="৳ 500"></label><label>Slots<input id="slots" type="number" min="1" value="48"></label><label>Status<select id="status"><option>OPEN</option><option>FULL</option><option>COMPLETED</option></select></label><button class="cta">SAVE TOURNAMENT</button><button type="button" id="resetTour" class="ghost">Clear Form</button></form><div id="adminTourList" class="registrations"></div>
-<h3>Room Details (Admin only)</h3><form id="roomForm" class="formgrid"><label>Tournament<select id="roomTournament"></select></label><label>Room ID<input id="roomId"></label><label>Room Password<input id="roomPassword"></label><button class="cta">SAVE PRIVATE ROOM</button></form>
-<h3>Player Registrations</h3><div id="registrationList" class="registrations">Loading…</div><button id="refreshRegs" class="ghost">Refresh</button>
-</div></div></div>
-<script type="module" src="app.js"></script></body></html>
+
+<header>
+  <a class="logo" href="#">
+    <span>AE</span> <b id="siteTitleText">FF ARENA</b>
+  </a>
+  <nav>
+    <a href="#matches">TOURNAMENT</a>
+    <a href="#leaderboard">LEADERBOARD</a>
+    <a href="#contact">CONTACT</a>
+    <button id="adminBtn" class="ghost">ADMIN LOGIN</button>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">BANGLADESH COMMUNITY ESPORTS</p>
+      <h1 id="heroTitle">ENTER THE BATTLE ZONE</h1>
+      <p id="heroDescription">তোমার স্কোয়াড তৈরি করো। টুর্নামেন্টে যোগ দাও। জিতে নাও গৌরব।</p>
+      <a class="cta" href="#matches">EXPLORE MATCHES ↗</a>
+    </div>
+    <div class="hero-visual">
+      <img id="heroBanner" hidden alt="AE FF ARENA Tournament Banner">
+      <div class="hero-fallback">
+        <span class="crosshair">✦</span>
+        <strong>AE<br>FF</strong>
+        <small>ARENA / BATTLE ZONE</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div><b id="countT">0</b><span>TOURNAMENTS</span></div>
+    <div><b id="countR">—</b><span>REGISTRATIONS</span></div>
+    <div><b>24/7</b><span>COMMUNITY</span></div>
+  </section>
+
+  <section id="matches" class="section">
+    <div class="heading">
+      <div>
+        <p class="eyebrow">FIND YOUR MATCH</p>
+        <h2>চলমান Tournament</h2>
+      </div>
+      <span id="connection">● CONNECTING...</span>
+    </div>
+    <div id="tournaments" class="cards">
+      <p>লোড হচ্ছে...</p>
+    </div>
+  </section>
+
+  <section id="leaderboard" class="section">
+    <p class="eyebrow">TOP PLAYERS</p>
+    <h2>Leaderboard</h2>
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Player / Squad</th><th>Matches</th><th>Points</th></tr>
+        </thead>
+        <tbody id="leaders">
+          <tr><td colspan="4">Leaderboard feature coming soon.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="contact" class="section contact-section">
+    <p class="eyebrow">GET IN TOUCH</p>
+    <h2>Contact AE FF ARENA</h2>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <span>PHONE</span>
+        <b id="contactPhoneView">Not added</b>
+        <a id="phoneLink" href="#">Call Now ↗</a>
+      </div>
+      <div class="contact-card">
+        <span>WHATSAPP</span>
+        <b id="whatsappView">Not added</b>
+        <a id="whatsappLink" href="#">Chat Now ↗</a>
+      </div>
+      <div class="contact-card">
+        <span>SOCIAL MEDIA</span>
+        <div class="social-links">
+          <a id="facebookLink" href="#" target="_blank" rel="noopener">Facebook ↗</a>
+          <a id="youtubeLink" href="#" target="_blank" rel="noopener">YouTube ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <b>AE FF ARENA</b>
+  <span>Unofficial community tournament project. Not affiliated with Garena.</span>
+</footer>
+
+<!-- JOIN TOURNAMENT -->
+<div class="modal" id="joinModal">
+  <div class="dialog">
+    <button class="x" data-close>×</button>
+    <p class="eyebrow">PLAYER ENTRY</p>
+    <h2>Join Tournament</h2>
+    <form id="joinForm">
+      <input id="joinTournament" type="hidden">
+      <label>Player / Squad Name<input id="pname" required maxlength="30"></label>
+      <label>Free Fire UID<input id="puid" required maxlength="20"></label>
+      <label>Contact Number<input id="pcontact" required maxlength="20"></label>
+      <button class="cta">SUBMIT REGISTRATION</button>
+    </form>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="modal" id="adminModal">
+  <div class="dialog wide">
+    <button class="x" data-close>×</button>
+    <p class="eyebrow">AE FF ARENA / CONTROL ROOM</p>
+    <h2>Admin Dashboard</h2>
+
+    <div id="loginBox">
+      <form id="loginForm">
+        <label>Admin Email<input id="email" type="email" required autocomplete="username"></label>
+        <label>Password<input id="password" type="password" required autocomplete="current-password"></label>
+        <button class="cta">LOGIN TO DASHBOARD</button>
+      </form>
+      <p class="hint">Admin account দিয়ে Login করো।</p>
+    </div>
+
+    <div id="dashboard" hidden>
+      <div class="dashhead">
+        <span id="adminIdentity"></span>
+        <button id="logout" class="ghost">LOGOUT</button>
+      </div>
+
+      <div class="admin-section">
+        <p class="eyebrow">01 / WEBSITE APPEARANCE</p>
+        <h3>Banner Management</h3>
+        <label>Select Banner Image
+          <input id="bannerFile" type="file" accept="image/*">
+        </label>
+        <img id="bannerPreview" class="banner-preview" hidden alt="Banner preview">
+        <div class="action-row">
+          <button type="button" id="saveBanner" class="cta">UPLOAD / CHANGE BANNER</button>
+          <button type="button" id="deleteBanner" class="danger">DELETE BANNER</button>
+        </div>
+        <p class="hint">ছবি Gallery থেকে নির্বাচন করো। ছবি স্বয়ংক্রিয়ভাবে ছোট হবে। সর্বোচ্চ ৭০০ KB-এর মধ্যে রাখতে হবে।</p>
+      </div>
+
+      <div class="admin-section">
+        <p class="eyebrow">02 / WEBSITE SETTINGS</p>
+        <h3>Contact & Website Details</h3>
+        <form id="settingsForm" class="formgrid">
+          <label>Website Name<input id="settingTitle" placeholder="AE FF ARENA"></label>
+          <label>Hero Heading<input id="settingHeroTitle" placeholder="ENTER THE BATTLE ZONE"></label>
+          <label class="full">Website Description<input id="settingDescription" placeholder="Tournament website description"></label>
+          <label class="full">SEO Keywords<input id="settingKeywords" placeholder="Free Fire, Tournament, Bangladesh"></label>
+          <label>Contact Number<input id="settingPhone" placeholder="01XXXXXXXXX"></label>
+          <label>WhatsApp Number<input id="settingWhatsapp" placeholder="8801XXXXXXXXX"></label>
+          <label>Facebook Link<input id="settingFacebook" type="url" placeholder="https://facebook.com/..."></label>
+          <label>YouTube Link<input id="settingYoutube" type="url" placeholder="https://youtube.com/..."></label>
+          <button class="cta full">SAVE WEBSITE SETTINGS</button>
+        </form>
+      </div>
+
+      <div class="admin-section">
+        <p class="eyebrow">03 / MATCH CONTROL</p>
+        <h3>Create / Update Tournament</h3>
+        <form id="tourForm" class="formgrid">
+          <input id="tid" type="hidden">
+          <label>Tournament Name<input id="tname" required></label>
+          <label>Mode
+            <select id="mode"><option>SOLO</option><option>DUO</option><option>SQUAD</option></select>
+          </label>
+          <label>Match Date & Time<input id="date" placeholder="Friday 8:00 PM"></label>
+          <label>Prize Pool<input id="prize" placeholder="৳ 500"></label>
+          <label>Slots<input id="slots" type="number" min="1" value="48"></label>
+          <label>Status
+            <select id="status"><option>OPEN</option><option>FULL</option><option>COMPLETED</option></select>
+          </label>
+          <button class="cta">SAVE TOURNAMENT</button>
+          <button type="button" id="resetTour" class="ghost">CLEAR FORM</button>
+        </form>
+        <div id="adminTourList" class="registrations"></div>
+      </div>
+
+      <div class="admin-section">
+        <p class="eyebrow">04 / PRIVATE ROOM</p>
+        <h3>Room ID & Password</h3>
+        <form id="roomForm" class="formgrid">
+          <label class="full">Tournament<select id="roomTournament"></select></label>
+          <label>Room ID<input id="roomId"></label>
+          <label>Room Password<input id="roomPassword"></label>
+          <button class="cta full">SAVE PRIVATE ROOM</button>
+        </form>
+        <p class="hint">Room details শুধু Admin-এর জন্য সংরক্ষিত থাকবে।</p>
+      </div>
+
+      <div class="admin-section">
+        <p class="eyebrow">05 / PLAYER CONTROL</p>
+        <h3>Player Registrations</h3>
+        <div id="registrationList" class="registrations">Loading...</div>
+        <button id="refreshRegs" class="ghost">REFRESH REGISTRATIONS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
