@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
 
 import {
@@ -23,18 +22,21 @@ import {
   onSnapshot,
   serverTimestamp,
   query,
-  orderBy,
   where,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
 
 import { firebaseConfig, ADMIN_EMAIL } from "./firebase-config.js";
 
+// FIREBASE INITIALIZATION
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
+
+const ADMIN = (ADMIN_EMAIL || "jornaabdullah@gmail.com").toLowerCase();
 
 let currentUser = null;
 let isSignup = false;
@@ -43,8 +45,17 @@ let publicTournamentUnsub = null;
 let unsubscribePlayer = [];
 let unsubscribeAdmin = [];
 let walletBalanceValue = 0;
+let authReady = false;
 
-const ADMIN = ADMIN_EMAIL || "jornaabdullah@gmail.com";
+let playerAddRequests = [];
+let playerWithdrawRequests = [];
+
+function isAdmin() {
+  return !!currentUser &&
+    currentUser.email?.toLowerCase() === ADMIN;
+}
+
+// COMMON FUNCTIONS
 
 function money(value) {
   return Number(value || 0).toLocaleString("en-BD");
@@ -68,6 +79,7 @@ function toast(message) {
   element.style.display = "block";
 
   clearTimeout(window.toastTimer);
+
   window.toastTimer = setTimeout(() => {
     element.style.display = "none";
   }, 3000);
@@ -82,14 +94,29 @@ function showMessage(id, message, color = "") {
 }
 
 function openModal(id) {
-  const element = $(id);
-  if (element) element.classList.add("active");
+  $(id)?.classList.add("active");
 }
 
 function closeModal(id) {
-  const element = $(id);
-  if (element) element.classList.remove("active");
+  $(id)?.classList.remove("active");
 }
+
+function errorText(error) {
+  const messages = {
+    "auth/invalid-credential": "Email অথবা Password ভুল হয়েছে।",
+    "auth/user-not-found": "এই Email দিয়ে Account পাওয়া যায়নি।",
+    "auth/wrong-password": "Password সঠিক নয়।",
+    "auth/email-already-in-use": "এই Email দিয়ে আগে Account খোলা হয়েছে।",
+    "auth/weak-password": "কমপক্ষে ৬ অক্ষরের Password দিন।",
+    "auth/invalid-email": "সঠিক Email Address দিন।",
+    "auth/network-request-failed": "Internet Connection পরীক্ষা করুন।",
+    "permission-denied": "আপনার এই কাজের অনুমতি নেই।"
+  };
+
+  return messages[error.code] || error.message || "কাজটি সম্পন্ন হয়নি।";
+}
+
+// MODALS
 
 document.querySelectorAll("[data-close]").forEach(button => {
   button.addEventListener("click", () => {
@@ -99,15 +126,17 @@ document.querySelectorAll("[data-close]").forEach(button => {
 
 document.querySelectorAll(".modal").forEach(modal => {
   modal.addEventListener("click", event => {
-    if (event.target === modal) modal.classList.remove("active");
+    if (event.target === modal) {
+      modal.classList.remove("active");
+    }
   });
 });
 
-if ($("menuToggle")) {
-  $("menuToggle").addEventListener("click", () => {
-    $("mainNav")?.classList.toggle("open");
-  });
-}
+// MOBILE MENU
+
+$("menuToggle")?.addEventListener("click", () => {
+  $("mainNav")?.classList.toggle("open");
+});
 
 document.querySelectorAll("#mainNav a").forEach(link => {
   link.addEventListener("click", () => {
@@ -115,7 +144,7 @@ document.querySelectorAll("#mainNav a").forEach(link => {
   });
 });
 
-// PLAYER AUTH MODE
+// PLAYER LOGIN AND SIGNUP
 
 function setAuthMode(signup) {
   isSignup = signup;
@@ -143,6 +172,11 @@ function setAuthMode(signup) {
 }
 
 function openPlayerLogin() {
+  if (!authReady) {
+    toast("একটু অপেক্ষা করে আবার চেষ্টা করুন।");
+    return;
+  }
+
   if (currentUser && !isAdmin()) {
     showPlayerMenu();
     return;
@@ -153,7 +187,6 @@ function openPlayerLogin() {
 }
 
 $("playerBtn")?.addEventListener("click", openPlayerLogin);
-
 $("walletLoginBtn")?.addEventListener("click", openPlayerLogin);
 
 $("heroRegisterBtn")?.addEventListener("click", () => {
@@ -165,7 +198,7 @@ $("switchAuthBtn")?.addEventListener("click", () => {
   setAuthMode(!isSignup);
 });
 
-// PLAYER SIGNUP / LOGIN
+// PLAYER AUTH FORM
 
 $("playerAuthForm")?.addEventListener("submit", async event => {
   event.preventDefault();
@@ -173,8 +206,11 @@ $("playerAuthForm")?.addEventListener("submit", async event => {
   const email = $("playerEmail").value.trim();
   const password = $("playerPassword").value;
 
+  const submitButton = $("playerSubmitBtn");
+
   try {
-    $("playerSubmitBtn").disabled = true;
+    submitButton.disabled = true;
+    showMessage("playerAuthMessage", "Please wait...");
 
     if (isSignup) {
       const name = $("playerName").value.trim();
@@ -182,7 +218,7 @@ $("playerAuthForm")?.addEventListener("submit", async event => {
       const phone = $("playerPhone").value.trim();
 
       if (!name || !ffUID || !phone) {
-        throw new Error("সব তথ্য পূরণ করো।");
+        throw new Error("সব তথ্য পূরণ করুন।");
       }
 
       const result = await createUserWithEmailAndPassword(
@@ -204,26 +240,30 @@ $("playerAuthForm")?.addEventListener("submit", async event => {
         createdAt: serverTimestamp()
       });
 
-      toast("Account created successfully!");
+      toast("Account Created Successfully!");
       closeModal("playerModal");
       $("playerAuthForm").reset();
 
     } else {
       await signInWithEmailAndPassword(auth, email, password);
 
-      toast("Login successful!");
+      toast("Player Login Successful!");
       closeModal("playerModal");
       $("playerAuthForm").reset();
     }
 
   } catch (error) {
-    showMessage("playerAuthMessage", error.message, "#ff7777");
+    showMessage(
+      "playerAuthMessage",
+      errorText(error),
+      "#ff7777"
+    );
   } finally {
-    $("playerSubmitBtn").disabled = false;
+    submitButton.disabled = false;
   }
 });
 
-// ACCOUNT MENU
+// PLAYER ACCOUNT MENU
 
 function removePlayerMenu() {
   $("playerAccountMenu")?.remove();
@@ -255,7 +295,9 @@ function showPlayerMenu() {
 
   $("mainNav").appendChild(menu);
 
-  $("playerBtn")?.style.setProperty("display", "none");
+  if ($("playerBtn")) {
+    $("playerBtn").style.display = "none";
+  }
 
   $("playerAccountButton").addEventListener("click", () => {
     $("playerAccountDropdown").classList.toggle("open");
@@ -267,28 +309,47 @@ function showPlayerMenu() {
 
       const action = button.dataset.action;
 
-      if (action === "profile") await showMyProfile();
-      if (action === "wallet") location.hash = "wallet";
+      if (action === "profile") {
+        await showMyProfile();
+      }
+
+      if (action === "wallet") {
+        location.hash = "wallet";
+      }
+
       if (action === "add") {
         location.hash = "wallet";
         $("addAmount")?.focus();
       }
+
       if (action === "withdraw") {
         location.hash = "wallet";
         $("withdrawAmount")?.focus();
       }
+
       if (action === "transactions") {
         location.hash = "wallet";
-        $("transactionHistory")?.scrollIntoView({ behavior: "smooth" });
+        $("transactionHistory")?.scrollIntoView({
+          behavior: "smooth"
+        });
       }
-      if (action === "tournaments") await showMyTournaments();
-      if (action === "logout") await signOut(auth);
+
+      if (action === "tournaments") {
+        await showMyTournaments();
+      }
+
+      if (action === "logout") {
+        await signOut(auth);
+        toast("Logged out successfully!");
+      }
     });
   });
 }
 
+// PLAYER PROFILE
+
 async function showMyProfile() {
-  if (!currentUser) return;
+  if (!currentUser || isAdmin()) return;
 
   try {
     const snap = await getDoc(doc(db, "users", currentUser.uid));
@@ -307,26 +368,34 @@ async function showMyProfile() {
       <div class="modal-content">
         <button class="close-modal" id="closePlayerInfo">×</button>
         <h2>My Profile</h2>
-        <p><b>Name:</b> ${escapeHTML(data.displayName || currentUser.displayName)}</p>
+
+        <p><b>Name:</b> ${escapeHTML(data.displayName || currentUser.displayName || "")}</p>
         <p><b>FF UID:</b> ${escapeHTML(data.ffUID || "Not added")}</p>
         <p><b>Phone:</b> ${escapeHTML(data.phone || "Not added")}</p>
         <p><b>Email:</b> ${escapeHTML(currentUser.email)}</p>
+
         <button class="btn" id="editProfileBtn">Edit Profile</button>
       </div>
     `;
 
     modal.classList.add("active");
 
-    $("closePlayerInfo").onclick = () => modal.classList.remove("active");
+    $("closePlayerInfo").onclick = () => {
+      modal.classList.remove("active");
+    };
 
-    $("editProfileBtn").onclick = () => editMyProfile(data);
+    $("editProfileBtn").onclick = () => {
+      editMyProfile(data);
+    };
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 }
 
 async function editMyProfile(data) {
+  if (!currentUser || isAdmin()) return;
+
   const name = prompt("Player Name:", data.displayName || "");
   if (name === null) return;
 
@@ -335,6 +404,10 @@ async function editMyProfile(data) {
 
   const phone = prompt("Phone Number:", data.phone || "");
   if (phone === null) return;
+
+  if (!name.trim() || !ffUID.trim() || !phone.trim()) {
+    return toast("সব তথ্য পূরণ করুন।");
+  }
 
   try {
     await updateDoc(doc(db, "users", currentUser.uid), {
@@ -347,18 +420,21 @@ async function editMyProfile(data) {
       displayName: name.trim()
     });
 
-    toast("Profile updated!");
+    toast("Profile Updated!");
+
     $("playerInfoModal")?.classList.remove("active");
 
     showPlayerMenu();
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 }
 
+// MY TOURNAMENTS
+
 async function showMyTournaments() {
-  if (!currentUser) return;
+  if (!currentUser || isAdmin()) return;
 
   try {
     const q = query(
@@ -383,6 +459,7 @@ async function showMyTournaments() {
       <div class="modal-content">
         <button class="close-modal" id="closePlayerInfo">×</button>
         <h2>My Tournaments</h2>
+
         ${
           items.length
             ? items.map(item => `
@@ -398,19 +475,17 @@ async function showMyTournaments() {
     `;
 
     modal.classList.add("active");
-    $("closePlayerInfo").onclick = () => modal.classList.remove("active");
+
+    $("closePlayerInfo").onclick = () => {
+      modal.classList.remove("active");
+    };
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 }
 
-// AUTH STATE
-
-function isAdmin() {
-  return !!currentUser &&
-    currentUser.email?.toLowerCase() === ADMIN.toLowerCase();
-}
+// AUTH STATE - ONLY ONE LISTENER
 
 function clearSubscriptions() {
   unsubscribePlayer.forEach(unsubscribe => unsubscribe());
@@ -418,15 +493,23 @@ function clearSubscriptions() {
 
   unsubscribePlayer = [];
   unsubscribeAdmin = [];
+
+  playerAddRequests = [];
+  playerWithdrawRequests = [];
 }
 
 onAuthStateChanged(auth, async user => {
   clearSubscriptions();
+
   currentUser = user;
+  authReady = true;
 
   if (user && isAdmin()) {
     removePlayerMenu();
-    if ($("playerBtn")) $("playerBtn").style.display = "inline-flex";
+
+    if ($("playerBtn")) {
+      $("playerBtn").style.display = "inline-flex";
+    }
 
     $("walletLoggedOut").style.display = "block";
     $("walletDashboard").style.display = "none";
@@ -434,9 +517,14 @@ onAuthStateChanged(auth, async user => {
     $("adminLogin").style.display = "none";
     $("adminDashboard").style.display = "block";
 
+    // Automatically open Admin Panel after login or refresh
+    openModal("adminModal");
+
     showAdminDashboard();
 
   } else if (user) {
+    closeModal("adminModal");
+
     $("adminLogin").style.display = "block";
     $("adminDashboard").style.display = "none";
 
@@ -458,12 +546,19 @@ onAuthStateChanged(auth, async user => {
 
     $("adminLogin").style.display = "block";
     $("adminDashboard").style.display = "none";
+
+    walletBalanceValue = 0;
   }
 });
 
 // ADMIN LOGIN
 
 $("adminBtn")?.addEventListener("click", () => {
+  if (isAdmin()) {
+    openModal("adminModal");
+    return;
+  }
+
   openModal("adminModal");
 });
 
@@ -473,9 +568,11 @@ $("adminLoginForm")?.addEventListener("submit", async event => {
   try {
     const email = $("adminEmail").value.trim();
 
-    if (email.toLowerCase() !== ADMIN.toLowerCase()) {
-      throw new Error("This email is not authorized as admin.");
+    if (email.toLowerCase() !== ADMIN) {
+      throw new Error("এই Email Admin হিসেবে অনুমোদিত নয়।");
     }
+
+    showMessage("adminLoginMessage", "Please wait...");
 
     await signInWithEmailAndPassword(
       auth,
@@ -483,25 +580,37 @@ $("adminLoginForm")?.addEventListener("submit", async event => {
       $("adminPassword").value
     );
 
-    showMessage("adminLoginMessage", "Admin login successful!");
+    showMessage(
+      "adminLoginMessage",
+      "Admin Login Successful!",
+      "#35d98b"
+    );
 
   } catch (error) {
-    showMessage("adminLoginMessage", error.message, "#ff7777");
+    showMessage(
+      "adminLoginMessage",
+      errorText(error),
+      "#ff7777"
+    );
   }
 });
 
 $("adminLogoutBtn")?.addEventListener("click", async () => {
   await signOut(auth);
   closeModal("adminModal");
+  toast("Admin logged out!");
 });
 
 // PUBLIC TOURNAMENTS
 
 function startTournamentListener() {
-  if (publicTournamentUnsub) publicTournamentUnsub();
+  if (publicTournamentUnsub) {
+    publicTournamentUnsub();
+  }
 
   publicTournamentUnsub = onSnapshot(
     collection(db, "tournaments"),
+
     snapshot => {
       tournamentsCache = snapshot.docs.map(item => ({
         id: item.id,
@@ -512,7 +621,11 @@ function startTournamentListener() {
       renderRoomTournamentOptions();
       renderAdminTournaments();
     },
-    error => toast(error.message)
+
+    error => {
+      console.error(error);
+      toast(errorText(error));
+    }
   );
 }
 
@@ -533,6 +646,7 @@ function renderTournaments() {
       <p>Prize: ৳${money(item.prize)}</p>
       <p>Slots: ${money(item.slots)}</p>
       <p>Status: ${escapeHTML(item.status)}</p>
+
       <button class="btn" data-join="${escapeHTML(item.id)}">
         Join Tournament
       </button>
@@ -540,25 +654,36 @@ function renderTournaments() {
   `).join("");
 
   document.querySelectorAll("[data-join]").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const tournament = tournamentsCache.find(
         item => item.id === button.dataset.join
       );
 
       if (!tournament) return;
 
-      $("joinTournamentId").value = tournament.id;
-
-      if (currentUser && !isAdmin()) {
-        getDoc(doc(db, "users", currentUser.uid)).then(snap => {
-          const data = snap.exists() ? snap.data() : {};
-          $("joinPlayerName").value = data.displayName || currentUser.displayName || "";
-          $("joinFFUID").value = data.ffUID || "";
-          $("joinContact").value = data.phone || "";
-        });
+      if (!currentUser || isAdmin()) {
+        toast("Tournament Join করতে Player Login করুন।");
+        openPlayerLogin();
+        return;
       }
 
-      openModal("joinModal");
+      $("joinTournamentId").value = tournament.id;
+
+      try {
+        const snap = await getDoc(doc(db, "users", currentUser.uid));
+        const data = snap.exists() ? snap.data() : {};
+
+        $("joinPlayerName").value =
+          data.displayName || currentUser.displayName || "";
+
+        $("joinFFUID").value = data.ffUID || "";
+        $("joinContact").value = data.phone || "";
+
+        openModal("joinModal");
+
+      } catch (error) {
+        toast(errorText(error));
+      }
     });
   });
 }
@@ -568,48 +693,92 @@ function renderTournaments() {
 $("joinForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
+  if (!currentUser || isAdmin()) {
+    return toast("Player Login required.");
+  }
+
   try {
     const tournamentId = $("joinTournamentId").value;
-    const tournament = tournamentsCache.find(item => item.id === tournamentId);
 
-    if (!tournament) throw new Error("Tournament not found.");
+    const tournament = tournamentsCache.find(
+      item => item.id === tournamentId
+    );
+
+    if (!tournament) {
+      throw new Error("Tournament not found.");
+    }
+
+    const name = $("joinPlayerName").value.trim();
+    const ffUID = $("joinFFUID").value.trim();
+    const contact = $("joinContact").value.trim();
+
+    if (!name || !ffUID || !contact) {
+      throw new Error("সব তথ্য পূরণ করুন।");
+    }
+
+    // Prevent duplicate registration for the same tournament
+    const existing = query(
+      collection(db, "registrations"),
+      where("playerUid", "==", currentUser.uid),
+      where("tournamentId", "==", tournamentId)
+    );
+
+    const existingSnap = await getDocs(existing);
+
+    if (!existingSnap.empty) {
+      throw new Error("আপনি ইতিমধ্যে এই Tournament-এ Join করেছেন।");
+    }
 
     await addDoc(collection(db, "registrations"), {
       tournamentId,
       tournamentName: tournament.name || "",
-      playerName: $("joinPlayerName").value.trim(),
-      ffUID: $("joinFFUID").value.trim(),
-      contact: $("joinContact").value.trim(),
-      playerUid: currentUser && !isAdmin() ? currentUser.uid : null,
+      playerName: name,
+      ffUID,
+      contact,
+      playerUid: currentUser.uid,
       status: "Pending",
       createdAt: serverTimestamp()
     });
 
-    showMessage("joinMessage", "Tournament joined successfully!", "#35d98b");
+    showMessage(
+      "joinMessage",
+      "Tournament joined successfully!",
+      "#35d98b"
+    );
+
     $("joinForm").reset();
 
     setTimeout(() => closeModal("joinModal"), 1200);
 
   } catch (error) {
-    showMessage("joinMessage", error.message, "#ff7777");
+    showMessage("joinMessage", errorText(error), "#ff7777");
   }
 });
 
 // PLAYER WALLET LISTENERS
 
 function startPlayerListeners() {
+  if (!currentUser || isAdmin()) return;
+
   const uid = currentUser.uid;
 
   unsubscribePlayer.push(
-    onSnapshot(doc(db, "wallets", uid), snap => {
-      walletBalanceValue = snap.exists()
-        ? Number(snap.data().balance || 0)
-        : 0;
+    onSnapshot(
+      doc(db, "wallets", uid),
 
-      $("walletBalance").textContent = money(walletBalanceValue);
-      $("walletPlayerName").textContent =
-        currentUser.displayName || currentUser.email;
-    })
+      snap => {
+        walletBalanceValue = snap.exists()
+          ? Number(snap.data().balance || 0)
+          : 0;
+
+        $("walletBalance").textContent = money(walletBalanceValue);
+
+        $("walletPlayerName").textContent =
+          currentUser.displayName || currentUser.email;
+      },
+
+      error => toast(errorText(error))
+    )
   );
 
   const ownTransactions = query(
@@ -618,22 +787,29 @@ function startPlayerListeners() {
   );
 
   unsubscribePlayer.push(
-    onSnapshot(ownTransactions, snap => {
-      const items = snap.docs.map(item => ({
-        id: item.id,
-        ...item.data()
-      }));
+    onSnapshot(
+      ownTransactions,
 
-      $("transactionHistory").innerHTML = items.length
-        ? items.map(item => `
-          <div class="transaction-item">
-            <b>${escapeHTML(item.type || "Transaction")}</b>
-            <p>Amount: ৳${money(item.amount)}</p>
-            <p>${escapeHTML(item.status || "Completed")}</p>
-          </div>
-        `).join("")
-        : "No transactions yet.";
-    })
+      snap => {
+        const items = snap.docs.map(item => ({
+          id: item.id,
+          ...item.data()
+        }));
+
+        $("transactionHistory").innerHTML = items.length
+          ? items.map(item => `
+            <div class="transaction-item">
+              <b>${escapeHTML(item.type || "Transaction")}</b>
+              <p>Amount: ৳${money(item.amount)}</p>
+              <p>Status: ${escapeHTML(item.status || "Completed")}</p>
+              <p>Fee: ৳${money(item.fee)}</p>
+            </div>
+          `).join("")
+          : "No transactions yet.";
+      },
+
+      error => toast(errorText(error))
+    )
   );
 
   const ownAdds = query(
@@ -647,11 +823,9 @@ function startPlayerListeners() {
   );
 
   function renderRequests() {
-    if (!window.playerAddRequests || !window.playerWithdrawRequests) return;
-
     const all = [
-      ...window.playerAddRequests,
-      ...window.playerWithdrawRequests
+      ...playerAddRequests,
+      ...playerWithdrawRequests
     ];
 
     $("myRequests").innerHTML = all.length
@@ -665,36 +839,37 @@ function startPlayerListeners() {
       : "No requests yet.";
   }
 
-  window.playerAddRequests = [];
-  window.playerWithdrawRequests = [];
-
   unsubscribePlayer.push(
     onSnapshot(ownAdds, snap => {
-      window.playerAddRequests = snap.docs.map(item => ({
+      playerAddRequests = snap.docs.map(item => ({
         ...item.data(),
         type: "Add Money"
       }));
+
       renderRequests();
-    })
+    }, error => toast(errorText(error)))
   );
 
   unsubscribePlayer.push(
     onSnapshot(ownWithdraws, snap => {
-      window.playerWithdrawRequests = snap.docs.map(item => ({
+      playerWithdrawRequests = snap.docs.map(item => ({
         ...item.data(),
         type: "Withdraw"
       }));
+
       renderRequests();
-    })
+    }, error => toast(errorText(error)))
   );
 }
 
-// ADD MONEY REQUEST
+// ADD MONEY
 
 $("addMoneyForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
-  if (!currentUser || isAdmin()) return toast("Player login required.");
+  if (!currentUser || isAdmin()) {
+    return toast("Player Login required.");
+  }
 
   const amount = Number($("addAmount").value);
 
@@ -715,19 +890,21 @@ $("addMoneyForm")?.addEventListener("submit", async event => {
     });
 
     $("addMoneyForm").reset();
-    toast("Add money request submitted!");
+    toast("Add Money Request Submitted!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
-// WITHDRAW REQUEST
+// WITHDRAW
 
 $("withdrawForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
-  if (!currentUser || isAdmin()) return toast("Player login required.");
+  if (!currentUser || isAdmin()) {
+    return toast("Player Login required.");
+  }
 
   const amount = Number($("withdrawAmount").value);
 
@@ -736,7 +913,10 @@ $("withdrawForm")?.addEventListener("submit", async event => {
   }
 
   try {
-    const feeSnap = await getDoc(doc(db, "wallet_settings", "main"));
+    const feeSnap = await getDoc(
+      doc(db, "wallet_settings", "main")
+    );
+
     const fee = feeSnap.exists()
       ? Number(feeSnap.data().fee || 0)
       : 0;
@@ -757,10 +937,11 @@ $("withdrawForm")?.addEventListener("submit", async event => {
     });
 
     $("withdrawForm").reset();
-    toast("Withdraw request submitted!");
+
+    toast("Withdraw Request Submitted!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
@@ -769,98 +950,142 @@ $("withdrawForm")?.addEventListener("submit", async event => {
 function showAdminDashboard() {
   if (!isAdmin()) return;
 
-  if (publicTournamentUnsub) {
-    // Keep the existing public tournament listener.
-  }
-
   startAdminListeners();
   loadWebsiteSettings();
   loadWalletFee();
+  loadBanner();
 }
 
 function startAdminListeners() {
-  const registrationsQuery = query(collection(db, "registrations"));
+  // Registrations
 
   unsubscribeAdmin.push(
-    onSnapshot(registrationsQuery, snap => {
-      $("adminRegistrations").innerHTML = snap.docs.map(item => {
-        const data = item.data();
+    onSnapshot(
+      collection(db, "registrations"),
 
-        return `
-          <div class="request-item">
-            <b>${escapeHTML(data.tournamentName)}</b>
-            <p>Player: ${escapeHTML(data.playerName)}</p>
-            <p>FF UID: ${escapeHTML(data.ffUID)}</p>
-            <p>Contact: ${escapeHTML(data.contact)}</p>
-            <p>Status: ${escapeHTML(data.status)}</p>
-            <button class="btn btn-success" data-reg-status="${item.id}" data-status="Approved">Approve</button>
-            <button class="btn btn-danger" data-reg-status="${item.id}" data-status="Rejected">Reject</button>
-            <button class="btn btn-secondary" data-reg-delete="${item.id}">Delete</button>
-          </div>
-        `;
-      }).join("") || "No registrations.";
-
-      document.querySelectorAll("[data-reg-status]").forEach(button => {
-        button.onclick = async () => {
-          await updateDoc(doc(db, "registrations", button.dataset.regStatus), {
-            status: button.dataset.status
-          });
-        };
-      });
-
-      document.querySelectorAll("[data-reg-delete]").forEach(button => {
-        button.onclick = async () => {
-          if (confirm("Delete this registration?")) {
-            await deleteDoc(doc(db, "registrations", button.dataset.regDelete));
-          }
-        };
-      });
-    })
-  );
-
-  ["add_money_requests", "withdraw_requests"].forEach(type => {
-    unsubscribeAdmin.push(
-      onSnapshot(collection(db, type), snap => {
-        const target = type === "add_money_requests"
-          ? "adminAddRequests"
-          : "adminWithdrawRequests";
-
-        $(target).innerHTML = snap.docs.map(item => {
+      snap => {
+        $("adminRegistrations").innerHTML = snap.docs.map(item => {
           const data = item.data();
 
           return `
             <div class="request-item">
-              <p><b>Player:</b> ${escapeHTML(data.email)}</p>
-              <p><b>Amount:</b> ৳${money(data.amount)}</p>
-              <p><b>Method:</b> ${escapeHTML(data.method)}</p>
-              <p><b>Status:</b> ${escapeHTML(data.status)}</p>
-              <p><b>Number:</b> ${escapeHTML(data.sender || data.number || "")}</p>
-              <p><b>Transaction ID:</b> ${escapeHTML(data.trxId || "")}</p>
-              ${
-                data.status === "Pending"
-                  ? `
-                    <button class="btn btn-success" data-review="${type}" data-id="${item.id}" data-result="Approved">Approve</button>
-                    <button class="btn btn-danger" data-review="${type}" data-id="${item.id}" data-result="Rejected">Reject</button>
-                  `
-                  : ""
-              }
+              <b>${escapeHTML(data.tournamentName)}</b>
+              <p>Player: ${escapeHTML(data.playerName)}</p>
+              <p>FF UID: ${escapeHTML(data.ffUID)}</p>
+              <p>Contact: ${escapeHTML(data.contact)}</p>
+              <p>Status: ${escapeHTML(data.status)}</p>
+
+              <button class="btn btn-success"
+                data-reg-status="${item.id}"
+                data-status="Approved">Approve</button>
+
+              <button class="btn btn-danger"
+                data-reg-status="${item.id}"
+                data-status="Rejected">Reject</button>
+
+              <button class="btn btn-secondary"
+                data-reg-delete="${item.id}">Delete</button>
             </div>
           `;
-        }).join("") || "No requests.";
+        }).join("") || "No registrations.";
 
-        document.querySelectorAll(`[data-review="${type}"]`).forEach(button => {
-          button.onclick = () => reviewRequest(
-            type,
-            button.dataset.id,
-            button.dataset.result
-          );
+        document.querySelectorAll("[data-reg-status]").forEach(button => {
+          button.onclick = async () => {
+            try {
+              await updateDoc(
+                doc(db, "registrations", button.dataset.regStatus),
+                { status: button.dataset.status }
+              );
+
+              toast("Registration " + button.dataset.status);
+
+            } catch (error) {
+              toast(errorText(error));
+            }
+          };
         });
-      })
+
+        document.querySelectorAll("[data-reg-delete]").forEach(button => {
+          button.onclick = async () => {
+            if (!confirm("Delete this registration?")) return;
+
+            try {
+              await deleteDoc(
+                doc(db, "registrations", button.dataset.regDelete)
+              );
+
+              toast("Registration deleted!");
+
+            } catch (error) {
+              toast(errorText(error));
+            }
+          };
+        });
+      },
+
+      error => toast(errorText(error))
+    )
+  );
+
+  // ADD MONEY AND WITHDRAW REQUESTS
+
+  ["add_money_requests", "withdraw_requests"].forEach(type => {
+    unsubscribeAdmin.push(
+      onSnapshot(
+        collection(db, type),
+
+        snap => {
+          const target = type === "add_money_requests"
+            ? "adminAddRequests"
+            : "adminWithdrawRequests";
+
+          $(target).innerHTML = snap.docs.map(item => {
+            const data = item.data();
+
+            return `
+              <div class="request-item">
+                <p><b>Player:</b> ${escapeHTML(data.email)}</p>
+                <p><b>Amount:</b> ৳${money(data.amount)}</p>
+                <p><b>Method:</b> ${escapeHTML(data.method)}</p>
+                <p><b>Status:</b> ${escapeHTML(data.status)}</p>
+                <p><b>Number:</b> ${escapeHTML(data.sender || data.number || "")}</p>
+                <p><b>Transaction ID:</b> ${escapeHTML(data.trxId || "")}</p>
+
+                ${
+                  data.status === "Pending"
+                    ? `
+                      <button class="btn btn-success"
+                        data-review="${type}"
+                        data-id="${item.id}"
+                        data-result="Approved">Approve</button>
+
+                      <button class="btn btn-danger"
+                        data-review="${type}"
+                        data-id="${item.id}"
+                        data-result="Rejected">Reject</button>
+                    `
+                    : ""
+                }
+              </div>
+            `;
+          }).join("") || "No requests.";
+
+          document.querySelectorAll(`[data-review="${type}"]`).forEach(button => {
+            button.onclick = () => reviewRequest(
+              type,
+              button.dataset.id,
+              button.dataset.result
+            );
+          });
+        },
+
+        error => toast(errorText(error))
+      )
     );
   });
 }
 
-// ADMIN APPROVE / REJECT REQUEST
+// ADMIN APPROVE / REJECT
 
 async function reviewRequest(type, requestId, result) {
   if (!isAdmin()) return;
@@ -870,12 +1095,20 @@ async function reviewRequest(type, requestId, result) {
       const requestRef = doc(db, type, requestId);
       const requestSnap = await transaction.get(requestRef);
 
-      if (!requestSnap.exists()) throw new Error("Request not found.");
+      if (!requestSnap.exists()) {
+        throw new Error("Request not found.");
+      }
 
       const requestData = requestSnap.data();
 
       if (requestData.status !== "Pending") {
         throw new Error("This request has already been reviewed.");
+      }
+
+      const amount = Number(requestData.amount || 0);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error("Invalid request amount.");
       }
 
       const walletRef = doc(db, "wallets", requestData.uid);
@@ -890,20 +1123,20 @@ async function reviewRequest(type, requestId, result) {
       if (type === "withdraw_requests" && result === "Approved") {
         const feeRef = doc(db, "wallet_settings", "main");
         const feeSnap = await transaction.get(feeRef);
+
         fee = feeSnap.exists()
           ? Number(feeSnap.data().fee || 0)
           : 0;
       }
 
       if (result === "Approved") {
-        const amount = Number(requestData.amount || 0);
-
         if (type === "add_money_requests") {
           balance += amount;
         } else {
           if (balance < amount + fee) {
             throw new Error("Player wallet has insufficient balance.");
           }
+
           balance -= amount + fee;
         }
 
@@ -913,11 +1146,14 @@ async function reviewRequest(type, requestId, result) {
           updatedAt: serverTimestamp()
         });
 
-        const transactionType = type === "add_money_requests"
-          ? "Add Money"
-          : "Withdraw";
+        const transactionType =
+          type === "add_money_requests"
+            ? "Add Money"
+            : "Withdraw";
 
-        const transactionRef = doc(collection(db, "transactions"));
+        const transactionRef = doc(
+          collection(db, "transactions")
+        );
 
         transaction.set(transactionRef, {
           uid: requestData.uid,
@@ -939,14 +1175,15 @@ async function reviewRequest(type, requestId, result) {
     toast("Request " + result + "!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 }
 
-// TOURNAMENT ADMIN
+// ADMIN TOURNAMENT CREATE / EDIT
 
 $("tournamentForm")?.addEventListener("submit", async event => {
   event.preventDefault();
+
   if (!isAdmin()) return;
 
   const id = $("editTournamentId").value;
@@ -966,17 +1203,24 @@ $("tournamentForm")?.addEventListener("submit", async event => {
       await updateDoc(doc(db, "tournaments", id), data);
     } else {
       data.createdAt = serverTimestamp();
-      await addDoc(collection(db, "tournaments"), data);
+
+      await addDoc(
+        collection(db, "tournaments"),
+        data
+      );
     }
 
     $("tournamentForm").reset();
     $("editTournamentId").value = "";
-    toast("Tournament saved!");
+
+    toast("Tournament Saved!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
+
+// ADMIN TOURNAMENT LIST
 
 function renderAdminTournaments() {
   if (!$("adminTournamentList")) return;
@@ -985,14 +1229,21 @@ function renderAdminTournaments() {
     <div class="request-item">
       <b>${escapeHTML(item.name)}</b>
       <p>${escapeHTML(item.mode)} | ${escapeHTML(item.status)}</p>
-      <button class="btn" data-edit-tournament="${item.id}">Edit</button>
-      <button class="btn btn-danger" data-delete-tournament="${item.id}">Delete</button>
+
+      <button class="btn"
+        data-edit-tournament="${escapeHTML(item.id)}">Edit</button>
+
+      <button class="btn btn-danger"
+        data-delete-tournament="${escapeHTML(item.id)}">Delete</button>
     </div>
   `).join("");
 
   document.querySelectorAll("[data-edit-tournament]").forEach(button => {
     button.onclick = () => {
-      const item = tournamentsCache.find(t => t.id === button.dataset.editTournament);
+      const item = tournamentsCache.find(
+        t => t.id === button.dataset.editTournament
+      );
+
       if (!item) return;
 
       $("editTournamentId").value = item.id;
@@ -1003,15 +1254,25 @@ function renderAdminTournaments() {
       $("tournamentSlots").value = item.slots || 1;
       $("tournamentStatus").value = item.status || "Upcoming";
 
-      $("tournamentForm").scrollIntoView({ behavior: "smooth" });
+      $("tournamentForm").scrollIntoView({
+        behavior: "smooth"
+      });
     };
   });
 
   document.querySelectorAll("[data-delete-tournament]").forEach(button => {
     button.onclick = async () => {
-      if (confirm("Delete this tournament?")) {
-        await deleteDoc(doc(db, "tournaments", button.dataset.deleteTournament));
-        toast("Tournament deleted.");
+      if (!confirm("Delete this tournament?")) return;
+
+      try {
+        await deleteDoc(
+          doc(db, "tournaments", button.dataset.deleteTournament)
+        );
+
+        toast("Tournament deleted!");
+
+      } catch (error) {
+        toast(errorText(error));
       }
     };
   });
@@ -1023,21 +1284,32 @@ function renderRoomTournamentOptions() {
   const oldValue = $("roomTournament").value;
 
   $("roomTournament").innerHTML = tournamentsCache.map(item => `
-    <option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>
+    <option value="${escapeHTML(item.id)}">
+      ${escapeHTML(item.name)}
+    </option>
   `).join("");
 
-  if (oldValue) $("roomTournament").value = oldValue;
+  if (oldValue) {
+    $("roomTournament").value = oldValue;
+  }
 }
 
 // ROOM INFORMATION
 
 $("roomForm")?.addEventListener("submit", async event => {
   event.preventDefault();
+
   if (!isAdmin()) return;
 
   try {
+    const tournamentId = $("roomTournament").value;
+
+    if (!tournamentId) {
+      throw new Error("Select a tournament.");
+    }
+
     await setDoc(
-      doc(db, "tournament_private", $("roomTournament").value),
+      doc(db, "tournament_private", tournamentId),
       {
         roomId: $("roomId").value.trim(),
         roomPassword: $("roomPassword").value.trim(),
@@ -1046,17 +1318,19 @@ $("roomForm")?.addEventListener("submit", async event => {
     );
 
     $("roomForm").reset();
-    toast("Room information saved!");
+
+    toast("Room Information Saved!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
-// ADMIN MANUAL BALANCE
+// ADMIN MANUAL WALLET BALANCE
 
 $("balanceForm")?.addEventListener("submit", async event => {
   event.preventDefault();
+
   if (!isAdmin()) return;
 
   const uid = $("balanceUID").value.trim();
@@ -1080,7 +1354,9 @@ $("balanceForm")?.addEventListener("submit", async event => {
         ? oldBalance + amount
         : oldBalance - amount;
 
-      if (newBalance < 0) throw new Error("Balance cannot be negative.");
+      if (newBalance < 0) {
+        throw new Error("Balance cannot be negative.");
+      }
 
       transaction.set(walletRef, {
         uid,
@@ -1088,11 +1364,15 @@ $("balanceForm")?.addEventListener("submit", async event => {
         updatedAt: serverTimestamp()
       });
 
-      const transactionRef = doc(collection(db, "transactions"));
+      const transactionRef = doc(
+        collection(db, "transactions")
+      );
 
       transaction.set(transactionRef, {
         uid,
-        type: action === "add" ? "Admin Added Balance" : "Admin Removed Balance",
+        type: action === "add"
+          ? "Admin Added Balance"
+          : "Admin Removed Balance",
         amount,
         status: "Completed",
         createdAt: serverTimestamp()
@@ -1100,10 +1380,11 @@ $("balanceForm")?.addEventListener("submit", async event => {
     });
 
     $("balanceForm").reset();
-    toast("Player balance updated!");
+
+    toast("Player Balance Updated!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
@@ -1111,10 +1392,14 @@ $("balanceForm")?.addEventListener("submit", async event => {
 
 async function loadWalletFee() {
   try {
-    const snap = await getDoc(doc(db, "wallet_settings", "main"));
+    const snap = await getDoc(
+      doc(db, "wallet_settings", "main")
+    );
+
     $("withdrawFee").value = snap.exists()
       ? Number(snap.data().fee || 0)
       : 0;
+
   } catch (error) {
     console.error(error);
   }
@@ -1122,6 +1407,7 @@ async function loadWalletFee() {
 
 $("feeForm")?.addEventListener("submit", async event => {
   event.preventDefault();
+
   if (!isAdmin()) return;
 
   const fee = Number($("withdrawFee").value);
@@ -1131,15 +1417,18 @@ $("feeForm")?.addEventListener("submit", async event => {
   }
 
   try {
-    await setDoc(doc(db, "wallet_settings", "main"), {
-      fee,
-      updatedAt: serverTimestamp()
-    });
+    await setDoc(
+      doc(db, "wallet_settings", "main"),
+      {
+        fee,
+        updatedAt: serverTimestamp()
+      }
+    );
 
-    toast("Withdraw fee saved!");
+    toast("Withdraw Fee Saved!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
@@ -1147,7 +1436,10 @@ $("feeForm")?.addEventListener("submit", async event => {
 
 async function loadWebsiteSettings() {
   try {
-    const snap = await getDoc(doc(db, "settings", "website"));
+    const snap = await getDoc(
+      doc(db, "settings", "website")
+    );
+
     if (!snap.exists()) return;
 
     const data = snap.data();
@@ -1168,26 +1460,62 @@ async function loadWebsiteSettings() {
 
 async function loadPublicWebsiteSettings() {
   try {
-    const snap = await getDoc(doc(db, "settings", "website"));
+    const snap = await getDoc(
+      doc(db, "settings", "website")
+    );
+
     if (!snap.exists()) return;
 
     const data = snap.data();
 
-    if ($("contactPhone")) $("contactPhone").textContent = data.phone || "Not available";
-    if ($("contactWhatsApp")) $("contactWhatsApp").textContent = data.whatsApp || "Not available";
-    if ($("contactFacebook")) $("contactFacebook").textContent = data.facebook || "Not available";
-    if ($("contactYouTube")) $("contactYouTube").textContent = data.youTube || "Not available";
+    if ($("contactPhone")) {
+      $("contactPhone").textContent = data.phone || "Not available";
+    }
 
-    if (data.title) document.title = data.title;
+    if ($("contactWhatsApp")) {
+      $("contactWhatsApp").textContent = data.whatsApp || "Not available";
+    }
+
+    if ($("contactFacebook")) {
+      $("contactFacebook").textContent = data.facebook || "Not available";
+    }
+
+    if ($("contactYouTube")) {
+      $("contactYouTube").textContent = data.youTube || "Not available";
+    }
+
+    if (data.title) {
+      document.title = data.title;
+    }
 
     if (data.heroTitle) {
       const heading = document.querySelector(".hero h1");
-      if (heading) heading.textContent = data.heroTitle;
+
+      if (heading) {
+        heading.textContent = data.heroTitle;
+      }
     }
 
     if (data.description) {
       const paragraph = document.querySelector(".hero p");
-      if (paragraph) paragraph.textContent = data.description;
+
+      if (paragraph) {
+        paragraph.textContent = data.description;
+      }
+    }
+
+    if (data.bannerUrl) {
+      showBanner(data.bannerUrl);
+
+      const hero = document.querySelector(".hero");
+
+      if (hero) {
+        hero.style.backgroundImage =
+          `linear-gradient(90deg,rgba(7,11,22,.95),rgba(7,11,22,.55)),url("${data.bannerUrl}")`;
+
+        hero.style.backgroundSize = "cover";
+        hero.style.backgroundPosition = "center";
+      }
     }
 
   } catch (error) {
@@ -1197,26 +1525,32 @@ async function loadPublicWebsiteSettings() {
 
 $("settingsForm")?.addEventListener("submit", async event => {
   event.preventDefault();
+
   if (!isAdmin()) return;
 
   try {
-    await setDoc(doc(db, "settings", "website"), {
-      title: $("settingTitle").value.trim(),
-      heroTitle: $("settingHeroTitle").value.trim(),
-      description: $("settingDescription").value.trim(),
-      keywords: $("settingKeywords").value.trim(),
-      phone: $("settingPhone").value.trim(),
-      whatsApp: $("settingWhatsApp").value.trim(),
-      facebook: $("settingFacebook").value.trim(),
-      youTube: $("settingYouTube").value.trim(),
-      updatedAt: serverTimestamp()
-    });
+    await setDoc(
+      doc(db, "settings", "website"),
+      {
+        title: $("settingTitle").value.trim(),
+        heroTitle: $("settingHeroTitle").value.trim(),
+        description: $("settingDescription").value.trim(),
+        keywords: $("settingKeywords").value.trim(),
+        phone: $("settingPhone").value.trim(),
+        whatsApp: $("settingWhatsApp").value.trim(),
+        facebook: $("settingFacebook").value.trim(),
+        youTube: $("settingYouTube").value.trim(),
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
 
     await loadPublicWebsiteSettings();
-    toast("Website settings saved!");
+
+    toast("Website Settings Saved!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
@@ -1227,19 +1561,28 @@ $("saveBanner")?.addEventListener("click", async () => {
 
   const url = $("bannerUrl").value.trim();
 
-  if (!url) return toast("Enter banner image URL.");
+  if (!url) {
+    return toast("Enter banner image URL.");
+  }
 
   try {
-    await setDoc(doc(db, "settings", "website"), {
-      bannerUrl: url,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+    await setDoc(
+      doc(db, "settings", "website"),
+      {
+        bannerUrl: url,
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
 
     showBanner(url);
-    toast("Banner saved!");
+
+    await loadPublicWebsiteSettings();
+
+    toast("Banner Saved!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
@@ -1247,16 +1590,28 @@ $("deleteBanner")?.addEventListener("click", async () => {
   if (!isAdmin()) return;
 
   try {
-    await updateDoc(doc(db, "settings", "website"), {
-      bannerUrl: ""
-    });
+    await setDoc(
+      doc(db, "settings", "website"),
+      {
+        bannerUrl: "",
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
 
     $("bannerUrl").value = "";
     $("bannerPreview").innerHTML = "";
-    toast("Banner deleted!");
+
+    const hero = document.querySelector(".hero");
+
+    if (hero) {
+      hero.style.backgroundImage = "";
+    }
+
+    toast("Banner Deleted!");
 
   } catch (error) {
-    toast(error.message);
+    toast(errorText(error));
   }
 });
 
@@ -1272,22 +1627,20 @@ function showBanner(url) {
 
 async function loadBanner() {
   try {
-    const snap = await getDoc(doc(db, "settings", "website"));
+    const snap = await getDoc(
+      doc(db, "settings", "website")
+    );
+
     if (!snap.exists()) return;
 
     const url = snap.data().bannerUrl || "";
 
-    if ($("bannerUrl")) $("bannerUrl").value = url;
-    showBanner(url);
+    if ($("bannerUrl")) {
+      $("bannerUrl").value = url;
+    }
 
     if (url) {
-      const hero = document.querySelector(".hero");
-      if (hero) {
-        hero.style.backgroundImage =
-          `linear-gradient(90deg,rgba(7,11,22,.95),rgba(7,11,22,.55)),url("${url}")`;
-        hero.style.backgroundSize = "cover";
-        hero.style.backgroundPosition = "center";
-      }
+      showBanner(url);
     }
 
   } catch (error) {
@@ -1295,24 +1648,19 @@ async function loadBanner() {
   }
 }
 
-// INITIALIZE
+// INITIALIZE APP
 
 startTournamentListener();
-loadPublicWebsiteSettings();
-loadBanner();
 
-onAuthStateChanged(auth, user => {
-  if (user && isAdmin()) {
-    loadWebsiteSettings();
-    loadWalletFee();
-  }
-});
+loadPublicWebsiteSettings();
 
 // SERVICE WORKER
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js")
-      .catch(error => console.log("Service worker:", error.message));
+      .catch(error => {
+        console.log("Service worker:", error.message);
+      });
   });
-}
+  }
