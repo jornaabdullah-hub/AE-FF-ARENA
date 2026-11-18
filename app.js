@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
 
 import {
@@ -110,7 +111,9 @@ function errorText(error) {
     "auth/weak-password": "কমপক্ষে ৬ অক্ষরের Password দিন।",
     "auth/invalid-email": "সঠিক Email Address দিন।",
     "auth/network-request-failed": "Internet Connection পরীক্ষা করুন।",
-    "permission-denied": "আপনার এই কাজের অনুমতি নেই।"
+    "permission-denied": "আপনার এই কাজের অনুমতি নেই।",
+    "firestore/permission-denied": "আপনার এই কাজের অনুমতি নেই।",
+    "unavailable": "সার্ভার পাওয়া যাচ্ছে না। Internet পরীক্ষা করুন।"
   };
 
   return messages[error.code] || error.message || "কাজটি সম্পন্ন হয়নি।";
@@ -149,24 +152,34 @@ document.querySelectorAll("#mainNav a").forEach(link => {
 function setAuthMode(signup) {
   isSignup = signup;
 
-  $("playerModalTitle").textContent =
-    signup ? "Create Player Account" : "Player Login";
+  if ($("playerModalTitle")) {
+    $("playerModalTitle").textContent =
+      signup ? "Create Player Account" : "Player Login";
+  }
 
-  $("playerSubmitBtn").textContent =
-    signup ? "Create Account" : "Login";
+  if ($("playerSubmitBtn")) {
+    $("playerSubmitBtn").textContent =
+      signup ? "Create Account" : "Login";
+  }
 
-  $("signupFields").style.display =
-    signup ? "block" : "none";
+  if ($("signupFields")) {
+    $("signupFields").style.display =
+      signup ? "block" : "none";
+  }
 
   ["playerName", "playerFFUID", "playerPhone"].forEach(id => {
     if ($(id)) $(id).required = signup;
   });
 
-  $("authSwitchText").textContent =
-    signup ? "Already have an account?" : "Don't have an account?";
+  if ($("authSwitchText")) {
+    $("authSwitchText").textContent =
+      signup ? "Already have an account?" : "Don't have an account?";
+  }
 
-  $("switchAuthBtn").textContent =
-    signup ? "Player Login" : "Create Account";
+  if ($("switchAuthBtn")) {
+    $("switchAuthBtn").textContent =
+      signup ? "Player Login" : "Create Account";
+  }
 
   showMessage("playerAuthMessage", "");
 }
@@ -203,19 +216,23 @@ $("switchAuthBtn")?.addEventListener("click", () => {
 $("playerAuthForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
-  const email = $("playerEmail").value.trim();
-  const password = $("playerPassword").value;
-
+  const email = $("playerEmail")?.value.trim();
+  const password = $("playerPassword")?.value;
   const submitButton = $("playerSubmitBtn");
 
+  if (!email || !password) {
+    return showMessage("playerAuthMessage", "Email ও Password দিন।", "#ff7777");
+  }
+
   try {
-    submitButton.disabled = true;
+    if (submitButton) submitButton.disabled = true;
+
     showMessage("playerAuthMessage", "Please wait...");
 
     if (isSignup) {
-      const name = $("playerName").value.trim();
-      const ffUID = $("playerFFUID").value.trim();
-      const phone = $("playerPhone").value.trim();
+      const name = $("playerName")?.value.trim();
+      const ffUID = $("playerFFUID")?.value.trim();
+      const phone = $("playerPhone")?.value.trim();
 
       if (!name || !ffUID || !phone) {
         throw new Error("সব তথ্য পূরণ করুন।");
@@ -241,15 +258,17 @@ $("playerAuthForm")?.addEventListener("submit", async event => {
       });
 
       toast("Account Created Successfully!");
+
       closeModal("playerModal");
-      $("playerAuthForm").reset();
+      $("playerAuthForm")?.reset();
 
     } else {
       await signInWithEmailAndPassword(auth, email, password);
 
       toast("Player Login Successful!");
+
       closeModal("playerModal");
-      $("playerAuthForm").reset();
+      $("playerAuthForm")?.reset();
     }
 
   } catch (error) {
@@ -259,7 +278,7 @@ $("playerAuthForm")?.addEventListener("submit", async event => {
       "#ff7777"
     );
   } finally {
-    submitButton.disabled = false;
+    if (submitButton) submitButton.disabled = false;
   }
 });
 
@@ -300,12 +319,12 @@ function showPlayerMenu() {
   }
 
   $("playerAccountButton").addEventListener("click", () => {
-    $("playerAccountDropdown").classList.toggle("open");
+    $("playerAccountDropdown")?.classList.toggle("open");
   });
 
   menu.querySelectorAll("[data-action]").forEach(button => {
     button.addEventListener("click", async () => {
-      $("playerAccountDropdown").classList.remove("open");
+      $("playerAccountDropdown")?.classList.remove("open");
 
       const action = button.dataset.action;
 
@@ -410,11 +429,14 @@ async function editMyProfile(data) {
   }
 
   try {
-    await updateDoc(doc(db, "users", currentUser.uid), {
+    await setDoc(doc(db, "users", currentUser.uid), {
+      uid: currentUser.uid,
+      email: currentUser.email,
       displayName: name.trim(),
       ffUID: ffUID.trim(),
-      phone: phone.trim()
-    });
+      phone: phone.trim(),
+      updatedAt: serverTimestamp()
+    }, { merge: true });
 
     await updateProfile(currentUser, {
       displayName: name.trim()
@@ -485,7 +507,7 @@ async function showMyTournaments() {
   }
 }
 
-// AUTH STATE - ONLY ONE LISTENER
+// AUTH STATE
 
 function clearSubscriptions() {
   unsubscribePlayer.forEach(unsubscribe => unsubscribe());
@@ -511,25 +533,23 @@ onAuthStateChanged(auth, async user => {
       $("playerBtn").style.display = "inline-flex";
     }
 
-    $("walletLoggedOut").style.display = "block";
-    $("walletDashboard").style.display = "none";
+    if ($("walletLoggedOut")) $("walletLoggedOut").style.display = "block";
+    if ($("walletDashboard")) $("walletDashboard").style.display = "none";
 
-    $("adminLogin").style.display = "none";
-    $("adminDashboard").style.display = "block";
+    if ($("adminLogin")) $("adminLogin").style.display = "none";
+    if ($("adminDashboard")) $("adminDashboard").style.display = "block";
 
-    // Automatically open Admin Panel after login or refresh
     openModal("adminModal");
-
     showAdminDashboard();
 
   } else if (user) {
     closeModal("adminModal");
 
-    $("adminLogin").style.display = "block";
-    $("adminDashboard").style.display = "none";
+    if ($("adminLogin")) $("adminLogin").style.display = "block";
+    if ($("adminDashboard")) $("adminDashboard").style.display = "none";
 
-    $("walletLoggedOut").style.display = "none";
-    $("walletDashboard").style.display = "block";
+    if ($("walletLoggedOut")) $("walletLoggedOut").style.display = "none";
+    if ($("walletDashboard")) $("walletDashboard").style.display = "block";
 
     showPlayerMenu();
     startPlayerListeners();
@@ -541,11 +561,11 @@ onAuthStateChanged(auth, async user => {
       $("playerBtn").style.display = "inline-flex";
     }
 
-    $("walletLoggedOut").style.display = "block";
-    $("walletDashboard").style.display = "none";
+    if ($("walletLoggedOut")) $("walletLoggedOut").style.display = "block";
+    if ($("walletDashboard")) $("walletDashboard").style.display = "none";
 
-    $("adminLogin").style.display = "block";
-    $("adminDashboard").style.display = "none";
+    if ($("adminLogin")) $("adminLogin").style.display = "block";
+    if ($("adminDashboard")) $("adminDashboard").style.display = "none";
 
     walletBalanceValue = 0;
   }
@@ -554,11 +574,6 @@ onAuthStateChanged(auth, async user => {
 // ADMIN LOGIN
 
 $("adminBtn")?.addEventListener("click", () => {
-  if (isAdmin()) {
-    openModal("adminModal");
-    return;
-  }
-
   openModal("adminModal");
 });
 
@@ -566,9 +581,9 @@ $("adminLoginForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
   try {
-    const email = $("adminEmail").value.trim();
+    const email = $("adminEmail")?.value.trim();
 
-    if (email.toLowerCase() !== ADMIN) {
+    if (!email || email.toLowerCase() !== ADMIN) {
       throw new Error("এই Email Admin হিসেবে অনুমোদিত নয়।");
     }
 
@@ -667,17 +682,21 @@ function renderTournaments() {
         return;
       }
 
-      $("joinTournamentId").value = tournament.id;
+      if ($("joinTournamentId")) {
+        $("joinTournamentId").value = tournament.id;
+      }
 
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
         const data = snap.exists() ? snap.data() : {};
 
-        $("joinPlayerName").value =
-          data.displayName || currentUser.displayName || "";
+        if ($("joinPlayerName")) {
+          $("joinPlayerName").value =
+            data.displayName || currentUser.displayName || "";
+        }
 
-        $("joinFFUID").value = data.ffUID || "";
-        $("joinContact").value = data.phone || "";
+        if ($("joinFFUID")) $("joinFFUID").value = data.ffUID || "";
+        if ($("joinContact")) $("joinContact").value = data.phone || "";
 
         openModal("joinModal");
 
@@ -716,7 +735,6 @@ $("joinForm")?.addEventListener("submit", async event => {
       throw new Error("সব তথ্য পূরণ করুন।");
     }
 
-    // Prevent duplicate registration for the same tournament
     const existing = query(
       collection(db, "registrations"),
       where("playerUid", "==", currentUser.uid),
@@ -771,10 +789,14 @@ function startPlayerListeners() {
           ? Number(snap.data().balance || 0)
           : 0;
 
-        $("walletBalance").textContent = money(walletBalanceValue);
+        if ($("walletBalance")) {
+          $("walletBalance").textContent = money(walletBalanceValue);
+        }
 
-        $("walletPlayerName").textContent =
-          currentUser.displayName || currentUser.email;
+        if ($("walletPlayerName")) {
+          $("walletPlayerName").textContent =
+            currentUser.displayName || currentUser.email;
+        }
       },
 
       error => toast(errorText(error))
@@ -796,16 +818,18 @@ function startPlayerListeners() {
           ...item.data()
         }));
 
-        $("transactionHistory").innerHTML = items.length
-          ? items.map(item => `
-            <div class="transaction-item">
-              <b>${escapeHTML(item.type || "Transaction")}</b>
-              <p>Amount: ৳${money(item.amount)}</p>
-              <p>Status: ${escapeHTML(item.status || "Completed")}</p>
-              <p>Fee: ৳${money(item.fee)}</p>
-            </div>
-          `).join("")
-          : "No transactions yet.";
+        if ($("transactionHistory")) {
+          $("transactionHistory").innerHTML = items.length
+            ? items.map(item => `
+              <div class="transaction-item">
+                <b>${escapeHTML(item.type || "Transaction")}</b>
+                <p>Amount: ৳${money(item.amount)}</p>
+                <p>Status: ${escapeHTML(item.status || "Completed")}</p>
+                <p>Fee: ৳${money(item.fee)}</p>
+              </div>
+            `).join("")
+            : "No transactions yet.";
+        }
       },
 
       error => toast(errorText(error))
@@ -828,15 +852,17 @@ function startPlayerListeners() {
       ...playerWithdrawRequests
     ];
 
-    $("myRequests").innerHTML = all.length
-      ? all.map(item => `
-        <div class="request-item">
-          <b>${escapeHTML(item.type)}</b>
-          <p>Amount: ৳${money(item.amount)}</p>
-          <p>Status: ${escapeHTML(item.status)}</p>
-        </div>
-      `).join("")
-      : "No requests yet.";
+    if ($("myRequests")) {
+      $("myRequests").innerHTML = all.length
+        ? all.map(item => `
+          <div class="request-item">
+            <b>${escapeHTML(item.type)}</b>
+            <p>Amount: ৳${money(item.amount)}</p>
+            <p>Status: ${escapeHTML(item.status)}</p>
+          </div>
+        `).join("")
+        : "No requests yet.";
+    }
   }
 
   unsubscribePlayer.push(
@@ -871,7 +897,7 @@ $("addMoneyForm")?.addEventListener("submit", async event => {
     return toast("Player Login required.");
   }
 
-  const amount = Number($("addAmount").value);
+  const amount = Number($("addAmount")?.value);
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return toast("Enter a valid amount.");
@@ -882,9 +908,9 @@ $("addMoneyForm")?.addEventListener("submit", async event => {
       uid: currentUser.uid,
       email: currentUser.email,
       amount,
-      method: $("addMethod").value,
-      sender: $("addSender").value.trim(),
-      trxId: $("addTrxId").value.trim(),
+      method: $("addMethod")?.value || "",
+      sender: $("addSender")?.value.trim() || "",
+      trxId: $("addTrxId")?.value.trim() || "",
       status: "Pending",
       createdAt: serverTimestamp()
     });
@@ -906,7 +932,7 @@ $("withdrawForm")?.addEventListener("submit", async event => {
     return toast("Player Login required.");
   }
 
-  const amount = Number($("withdrawAmount").value);
+  const amount = Number($("withdrawAmount")?.value);
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return toast("Enter a valid amount.");
@@ -929,9 +955,9 @@ $("withdrawForm")?.addEventListener("submit", async event => {
       uid: currentUser.uid,
       email: currentUser.email,
       amount,
-      method: $("withdrawMethod").value,
-      holder: $("withdrawHolder").value.trim(),
-      number: $("withdrawNumber").value.trim(),
+      method: $("withdrawMethod")?.value || "",
+      holder: $("withdrawHolder")?.value.trim() || "",
+      number: $("withdrawNumber")?.value.trim() || "",
       status: "Pending",
       createdAt: serverTimestamp()
     });
@@ -957,13 +983,13 @@ function showAdminDashboard() {
 }
 
 function startAdminListeners() {
-  // Registrations
-
   unsubscribeAdmin.push(
     onSnapshot(
       collection(db, "registrations"),
 
       snap => {
+        if (!$("adminRegistrations")) return;
+
         $("adminRegistrations").innerHTML = snap.docs.map(item => {
           const data = item.data();
 
@@ -1027,8 +1053,6 @@ function startAdminListeners() {
     )
   );
 
-  // ADD MONEY AND WITHDRAW REQUESTS
-
   ["add_money_requests", "withdraw_requests"].forEach(type => {
     unsubscribeAdmin.push(
       onSnapshot(
@@ -1038,6 +1062,8 @@ function startAdminListeners() {
           const target = type === "add_money_requests"
             ? "adminAddRequests"
             : "adminWithdrawRequests";
+
+          if (!$(target)) return;
 
           $(target).innerHTML = snap.docs.map(item => {
             const data = item.data();
@@ -1186,7 +1212,7 @@ $("tournamentForm")?.addEventListener("submit", async event => {
 
   if (!isAdmin()) return;
 
-  const id = $("editTournamentId").value;
+  const id = $("editTournamentId")?.value || "";
 
   const data = {
     name: $("tournamentName").value.trim(),
@@ -1211,7 +1237,10 @@ $("tournamentForm")?.addEventListener("submit", async event => {
     }
 
     $("tournamentForm").reset();
-    $("editTournamentId").value = "";
+
+    if ($("editTournamentId")) {
+      $("editTournamentId").value = "";
+    }
 
     toast("Tournament Saved!");
 
@@ -1396,9 +1425,11 @@ async function loadWalletFee() {
       doc(db, "wallet_settings", "main")
     );
 
-    $("withdrawFee").value = snap.exists()
-      ? Number(snap.data().fee || 0)
-      : 0;
+    if ($("withdrawFee")) {
+      $("withdrawFee").value = snap.exists()
+        ? Number(snap.data().fee || 0)
+        : 0;
+    }
 
   } catch (error) {
     console.error(error);
@@ -1444,14 +1475,14 @@ async function loadWebsiteSettings() {
 
     const data = snap.data();
 
-    $("settingTitle").value = data.title || "";
-    $("settingHeroTitle").value = data.heroTitle || "";
-    $("settingDescription").value = data.description || "";
-    $("settingKeywords").value = data.keywords || "";
-    $("settingPhone").value = data.phone || "";
-    $("settingWhatsApp").value = data.whatsApp || "";
-    $("settingFacebook").value = data.facebook || "";
-    $("settingYouTube").value = data.youTube || "";
+    if ($("settingTitle")) $("settingTitle").value = data.title || "";
+    if ($("settingHeroTitle")) $("settingHeroTitle").value = data.heroTitle || "";
+    if ($("settingDescription")) $("settingDescription").value = data.description || "";
+    if ($("settingKeywords")) $("settingKeywords").value = data.keywords || "";
+    if ($("settingPhone")) $("settingPhone").value = data.phone || "";
+    if ($("settingWhatsApp")) $("settingWhatsApp").value = data.whatsApp || "";
+    if ($("settingFacebook")) $("settingFacebook").value = data.facebook || "";
+    if ($("settingYouTube")) $("settingYouTube").value = data.youTube || "";
 
   } catch (error) {
     console.error(error);
@@ -1559,7 +1590,7 @@ $("settingsForm")?.addEventListener("submit", async event => {
 $("saveBanner")?.addEventListener("click", async () => {
   if (!isAdmin()) return;
 
-  const url = $("bannerUrl").value.trim();
+  const url = $("bannerUrl")?.value.trim();
 
   if (!url) {
     return toast("Enter banner image URL.");
@@ -1599,8 +1630,8 @@ $("deleteBanner")?.addEventListener("click", async () => {
       { merge: true }
     );
 
-    $("bannerUrl").value = "";
-    $("bannerPreview").innerHTML = "";
+    if ($("bannerUrl")) $("bannerUrl").value = "";
+    if ($("bannerPreview")) $("bannerPreview").innerHTML = "";
 
     const hero = document.querySelector(".hero");
 
@@ -1651,16 +1682,15 @@ async function loadBanner() {
 // INITIALIZE APP
 
 startTournamentListener();
-
 loadPublicWebsiteSettings();
 
 // SERVICE WORKER
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js")
+    navigator.serviceWorker.register("./sw.js")
       .catch(error => {
         console.log("Service worker:", error.message);
       });
   });
-  }
+}
